@@ -11,6 +11,7 @@ qt_add_executable(NAME_Radar
     mainwindow.cpp
     mainwindow.h
     mainwindow.ui
+    centralwidget.h centralwidget.cpp
 )
 
 target_link_libraries(NAME_Radar

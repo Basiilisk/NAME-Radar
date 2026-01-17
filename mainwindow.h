@@ -1,5 +1,4 @@
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#pragma once
 
 #include <QMainWindow>
 
@@ -19,5 +18,6 @@ public:
 
 private:
     Ui::MainWindow *ui;
+
+    QWidget *central;
 };
-#endif // MAINWINDOW_H
