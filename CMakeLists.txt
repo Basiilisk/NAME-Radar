@@ -12,6 +12,8 @@ qt_add_executable(NAME_Radar
     mainwindow.h
     mainwindow.ui
     centralwidget.h centralwidget.cpp
+    StructUSE.h
+    jsonsettings.h jsonsettings.cpp
 )
 
 target_link_libraries(NAME_Radar

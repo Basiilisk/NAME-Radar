@@ -1,5 +1,7 @@
 #pragma once
 
+#include "jsonsettings.h"
+
 #include <QCheckBox>
 #include <QSplitter>
 #include <QTextEdit>
@@ -32,4 +34,5 @@ private:
 
     QSplitter* splitter;
     QPushButton* btn;
+    JSONSettings setting;
 };

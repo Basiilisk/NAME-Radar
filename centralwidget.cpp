@@ -22,6 +22,8 @@ CentralWidget::CentralWidget(QWidget* parent)
 
     stroyova = new QCheckBox("СТРОЙОВА", this);
     rc = new QCheckBox("РС", this);
+    stroyova->setChecked(setting.radioBtnLoad("STROYOVA_BTN"));
+    rc->setChecked(setting.radioBtnLoad("RC_BTN"));
 
     auto* stroyovaL = new QVBoxLayout();
     stroyovaL->addWidget(stroyovaText);
@@ -58,9 +60,6 @@ CentralWidget::CentralWidget(QWidget* parent)
 
     connect(rc, &QCheckBox::checkStateChanged,
         this, &CentralWidget::rcChanged);
-
-    stroyova->setChecked(true);
-    rc->setChecked(true);
 }
 
 void CentralWidget::onButtonClicked()
@@ -70,16 +69,22 @@ void CentralWidget::onButtonClicked()
 
 void CentralWidget::stroyovaChanged(Qt::CheckState state)
 {
-    if (state)
+    if (state) {
         stroyovaText->show();
-    else
+        setting.radioBtnSave("STROYOVA_BTN", true);
+    } else {
         stroyovaText->hide();
+        setting.radioBtnSave("STROYOVA_BTN", false);
+    }
 }
 
 void CentralWidget::rcChanged(Qt::CheckState state)
 {
-    if (state)
+    if (state) {
         rcText->show();
-    else
+        setting.radioBtnSave("RC_BTN", true);
+    } else {
         rcText->hide();
+        setting.radioBtnSave("RC_BTN", false);
+    }
 }
