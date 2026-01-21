@@ -19,14 +19,6 @@ MainWindow::MainWindow(QWidget* parent)
     createMenus();
 }
 
-void MainWindow::closeEvent(QCloseEvent* event)
-{
-    JSONSettings setting;
-    setting.saveSettings();
-
-    QMainWindow::closeEvent(event);
-}
-
 void MainWindow::createMenus()
 {
     QMenuBar* mb = menuBar();
