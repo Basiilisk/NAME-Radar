@@ -21,9 +21,14 @@ CentralWidget::CentralWidget(QWidget* parent)
     fatherName = new QLineEdit(this);
 
     stroyova = new QCheckBox("СТРОЙОВА", this);
+    bool strVal = setting.radioBtnLoad("STROYOVA_BTN");
+    stroyova->setChecked(strVal);
+    stroyovaChanged(strVal);
+
     rc = new QCheckBox("РС", this);
-    stroyova->setChecked(setting.radioBtnLoad("STROYOVA_BTN"));
-    rc->setChecked(setting.radioBtnLoad("RC_BTN"));
+    bool rcVal = setting.radioBtnLoad("RC_BTN");
+    rc->setChecked(rcVal);
+    rcChanged(rcVal);
 
     auto* stroyovaL = new QVBoxLayout();
     stroyovaL->addWidget(stroyovaText);
@@ -43,7 +48,7 @@ CentralWidget::CentralWidget(QWidget* parent)
     firstName->setPlaceholderText("Прізвище");
     secondName->setPlaceholderText("Ім'я");
     fatherName->setPlaceholderText("По батькові");
-    stroyovaText->setPlaceholderText("Пошук по стройовим наказам");
+    stroyovaText->setPlaceholderText("Пошук по СТРОЙОВИМ наказам");
     rcText->setPlaceholderText("Пошук по РСним наказам");
 
     btn = new QPushButton("Шукати", this);
@@ -55,19 +60,42 @@ CentralWidget::CentralWidget(QWidget* parent)
     connect(btn, &QPushButton::clicked,
         this, &CentralWidget::onButtonClicked);
 
-    connect(stroyova, &QCheckBox::checkStateChanged,
+    connect(stroyova, &QCheckBox::toggled,
         this, &CentralWidget::stroyovaChanged);
 
-    connect(rc, &QCheckBox::checkStateChanged,
+    connect(rc, &QCheckBox::toggled,
         this, &CentralWidget::rcChanged);
 }
 
 void CentralWidget::onButtonClicked()
 {
-    stroyovaText->setText("Push button");
+    SearchedName names;
+    names.last = firstName->text();
+    names.first = secondName->text();
+    names.father = fatherName->text();
+
+    if (stroyova->isChecked()) {
+        QString path = setting.loadFolder("STROYOVA_PATH");
+        QString outText1;
+        stroyovaText->setText("Шукає");
+        searchName.searchNameInFile(path, outText1, names, logData1);
+        sortFile.sortResultData(outText1, logData1);
+
+        stroyovaText->setText(outText1);
+    }
+
+    if (rc->isChecked()) {
+        QString path = setting.loadFolder("PC_PATH");
+        QString outText2;
+        rcText->setText("Шукає");
+        searchName.searchNameInFile(path, outText2, names, logData2);
+        sortFile.sortResultData(outText2, logData2);
+
+        rcText->setText(outText2);
+    }
 }
 
-void CentralWidget::stroyovaChanged(Qt::CheckState state)
+void CentralWidget::stroyovaChanged(bool state)
 {
     if (state) {
         stroyovaText->show();
@@ -78,7 +106,7 @@ void CentralWidget::stroyovaChanged(Qt::CheckState state)
     }
 }
 
-void CentralWidget::rcChanged(Qt::CheckState state)
+void CentralWidget::rcChanged(bool state)
 {
     if (state) {
         rcText->show();

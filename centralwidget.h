@@ -1,6 +1,8 @@
 #pragma once
 
 #include "jsonsettings.h"
+#include "searchnames.h"
+#include "sortfilebydate.h"
 
 #include <QCheckBox>
 #include <QSplitter>
@@ -18,8 +20,8 @@ public:
 
 private slots:
     void onButtonClicked();
-    void stroyovaChanged(Qt::CheckState state);
-    void rcChanged(Qt::CheckState state);
+    void stroyovaChanged(bool state);
+    void rcChanged(bool state);
 
 private:
     QLineEdit* firstName;
@@ -34,5 +36,11 @@ private:
 
     QSplitter* splitter;
     QPushButton* btn;
+
     JSONSettings setting;
+    SearchNames searchName;
+    SortFileByDate sortFile;
+
+    OutputData logData1;
+    OutputData logData2;
 };

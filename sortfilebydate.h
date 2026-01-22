@@ -8,5 +8,5 @@ class SortFileByDate {
 public:
     SortFileByDate();
 
-    int sortResultData(const QString& inPath, const QString& outPath, const OutputData& logs);
+    int sortResultData(QString& inPath, const OutputData& logs);
 };

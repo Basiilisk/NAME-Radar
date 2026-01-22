@@ -8,18 +8,17 @@ class MainWindow;
 }
 QT_END_NAMESPACE
 
-class MainWindow : public QMainWindow
-{
+class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    MainWindow(QWidget* parent = nullptr);
     ~MainWindow();
 
     void createMenus();
 
 private:
-    Ui::MainWindow *ui;
+    Ui::MainWindow* ui;
 
-    QWidget *central;
+    QWidget* central;
 };

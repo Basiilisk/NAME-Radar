@@ -17,7 +17,7 @@ SortFileByDate::SortFileByDate()
 {
 }
 
-int SortFileByDate::sortResultData(const QString& outTempText, const QString& outPath, const OutputData& logs)
+int SortFileByDate::sortResultData(QString& outTempText, const OutputData& logs)
 {
     QString outText;
     QStringList resLines = outTempText.split("\n");
@@ -48,21 +48,12 @@ int SortFileByDate::sortResultData(const QString& outTempText, const QString& ou
         return a.line < b.line; // tiebreaker by text
     });
 
-    // Write sorted file
-    QFile out(outPath);
-    if (!out.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
-        return 2;
-    QTextStream ws(&out);
-#if QT_VERSION >= QT_VERSION_CHECK(6, 4, 0)
-    ws.setEncoding(QStringConverter::Utf8);
-#endif
-
     outText = "\n\t|Searched " + QString::number(logs.searchedNames) + " from " + QString::number(logs.allFiles) + "|\n\n";
 
     auto printHeader = [&](const QString& label) {
-        outText += "________________________________________________\n";
-        outText += "______________________|" + label + "|__________________________\n";
-        outText += "________________________________________________\n";
+        outText += "___________________________________________________________\n";
+        outText += "______________________|" + label + "|____________________________________\n";
+        outText += "___________________________________________________________\n";
     };
 
     int lastYear = -1;
@@ -85,11 +76,7 @@ int SortFileByDate::sortResultData(const QString& outTempText, const QString& ou
         }
     }
 
-    // qDebug() << outText;
-    ws << outText;
-    ws.flush();
-
-    out.close();
+    outTempText = outText;
 
     return 0;
 }
