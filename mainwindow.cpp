@@ -14,7 +14,7 @@ MainWindow::MainWindow(QWidget* parent)
     setCentralWidget(central);
 
     setWindowTitle("NAME RADAR");
-    resize(500, 400);
+    resize(1100, 500);
 
     createMenus();
 }

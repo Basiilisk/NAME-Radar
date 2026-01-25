@@ -9,7 +9,7 @@ class SearchNames {
 public:
     SearchNames();
 
-    void searchNameInFile(QString& rootDir, QString& outText, SearchedName& names, OutputData& logs);
+    void searchNameInFile(const QString& rootDir, QString& outText, const SearchedName& names, OutputData& logs);
 
 private:
     MatchBeforeAndName findBeforeLastFirst(const QString& text,

@@ -16,6 +16,7 @@ qt_add_executable(NAME_Radar
     jsonsettings.h jsonsettings.cpp
     searchnames.h searchnames.cpp
     sortfilebydate.h sortfilebydate.cpp
+    heavyworkthread.h heavyworkthread.cpp
 )
 
 target_link_libraries(NAME_Radar

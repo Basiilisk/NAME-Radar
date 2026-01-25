@@ -4,7 +4,7 @@
 
 SearchNames::SearchNames() { }
 
-void SearchNames::searchNameInFile(QString& rootDir, QString& outText, SearchedName& names, OutputData& logs)
+void SearchNames::searchNameInFile(const QString& rootDir, QString& outText, const SearchedName& names, OutputData& logs)
 {
     QDirIterator it(rootDir, { "*.txt" }, QDir::Files, QDirIterator::Subdirectories);
     while (it.hasNext()) {

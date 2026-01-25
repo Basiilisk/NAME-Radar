@@ -6,10 +6,18 @@
 
 CentralWidget::CentralWidget(QWidget* parent)
     : QWidget(parent)
+    , workerThread(nullptr)
+    , worker(nullptr)
 {
     auto* mainL = new QVBoxLayout(this);
     auto* namesL = new QHBoxLayout();
+    auto* buttL = new QHBoxLayout();
 
+    QFrame *line = new QFrame(this);
+    line->setFrameShape(QFrame::HLine);
+    line->setFrameShadow(QFrame::Sunken);
+
+    mainL->addWidget(line);
     mainL->addLayout(namesL);
 
     splitter = new QSplitter(Qt::Horizontal);
@@ -19,6 +27,8 @@ CentralWidget::CentralWidget(QWidget* parent)
     firstName = new QLineEdit(this);
     secondName = new QLineEdit(this);
     fatherName = new QLineEdit(this);
+
+    progressBar = new QProgressBar();
 
     stroyova = new QCheckBox("СТРОЙОВА", this);
     bool strVal = setting.radioBtnLoad("STROYOVA_BTN");
@@ -51,13 +61,18 @@ CentralWidget::CentralWidget(QWidget* parent)
     stroyovaText->setPlaceholderText("Пошук по СТРОЙОВИМ наказам");
     rcText->setPlaceholderText("Пошук по РСним наказам");
 
-    btn = new QPushButton("Шукати", this);
+    firstName->setText("Пур");
+    butt = new QPushButton("Шукати", this);
+    butt->setMinimumWidth(260);
 
-    mainL->addWidget(btn);
+    buttL->addStretch();
+    buttL->addWidget(butt);
+    buttL->addStretch();
 
+    mainL->addLayout(buttL);
     mainL->addWidget(splitter);
 
-    connect(btn, &QPushButton::clicked,
+    connect(butt, &QPushButton::clicked,
         this, &CentralWidget::onButtonClicked);
 
     connect(stroyova, &QCheckBox::toggled,
@@ -67,6 +82,33 @@ CentralWidget::CentralWidget(QWidget* parent)
         this, &CentralWidget::rcChanged);
 }
 
+void CentralWidget::startHeavyWork(QString& rootDir, SearchedName& names, const QString prossecName)
+{
+    workerThread = new QThread(this);
+    worker = new HeavyWorkThread(rootDir, names, prossecName);
+
+    worker->moveToThread(workerThread);
+
+    // 3️   Connections
+    connect(workerThread, &QThread::started,
+        worker, &HeavyWorkThread::process);
+
+    connect(worker, &HeavyWorkThread::finished,
+        this, &CentralWidget::onHeavyWorkFinished);
+
+    connect(worker, &HeavyWorkThread::finished,
+        workerThread, &QThread::quit);
+
+    connect(workerThread, &QThread::finished,
+        worker, &QObject::deleteLater);
+
+    connect(workerThread, &QThread::finished,
+        workerThread, &QObject::deleteLater);
+
+    // 4️⃣ Start
+    workerThread->start();
+}
+
 void CentralWidget::onButtonClicked()
 {
     SearchedName names;
@@ -74,24 +116,30 @@ void CentralWidget::onButtonClicked()
     names.first = secondName->text();
     names.father = fatherName->text();
 
+    progressBar->setRange(0, 0); // busy animation
+    progressBar->setVisible(true);
+
+    butt->setEnabled(false);
+
     if (stroyova->isChecked()) {
         QString path = setting.loadFolder("STROYOVA_PATH");
         QString outText1;
-        stroyovaText->setText("Шукає");
-        searchName.searchNameInFile(path, outText1, names, logData1);
-        sortFile.sortResultData(outText1, logData1);
+        QString outText2;
 
-        stroyovaText->setText(outText1);
+        stroyovaText->setText("Шукає");
+        startHeavyWork(path, names, "STROYOVA");
+
+        radButtState1 = true;
     }
 
     if (rc->isChecked()) {
         QString path = setting.loadFolder("PC_PATH");
         QString outText2;
-        rcText->setText("Шукає");
-        searchName.searchNameInFile(path, outText2, names, logData2);
-        sortFile.sortResultData(outText2, logData2);
 
-        rcText->setText(outText2);
+        rcText->setText("Шукає");
+        startHeavyWork(path, names, "PC");
+
+        radButtState2 = true;
     }
 }
 
@@ -114,5 +162,31 @@ void CentralWidget::rcChanged(bool state)
     } else {
         rcText->hide();
         setting.radioBtnSave("RC_BTN", false);
+    }
+}
+
+void CentralWidget::onHeavyWorkFinished(std::tuple<QString, OutputData, const QString> outData)
+{
+    std::tuple<QString, OutputData, const QString> data = outData;
+
+    if (get<2>(outData) == "STROYOVA") {
+        qDebug() << "Change ~~STROYOVA~~";
+        op1 = true;
+        stroyovaText->setText(get<0>(outData));
+    }
+
+    if (get<2>(outData) == "PC") {
+        qDebug() << "Change ~~PC~~";
+        op2 = true;
+        rcText->setText(get<0>(outData));
+    }
+
+    if (((radButtState1 == op1) && (radButtState2 == op2))) {
+        radButtState1 = false;
+        radButtState2 = false;
+        op1 = false;
+        op2 = false;
+        butt->setEnabled(true);
+        progressBar->setVisible(false);
     }
 }
