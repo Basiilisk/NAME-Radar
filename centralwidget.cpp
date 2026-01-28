@@ -3,19 +3,33 @@
 #include <QLayout>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QTimer>
+
+static const QStringList LoadingFrames = {
+    "Ш",
+    "Шу",
+    "Шук",
+    "Шука",
+    "Шукає",
+    "Шукає.",
+    "Шукає..",
+    "Шукає..."
+};
 
 CentralWidget::CentralWidget(QWidget* parent)
     : QWidget(parent)
-    , workerThread(nullptr)
     , worker(nullptr)
 {
     auto* mainL = new QVBoxLayout(this);
     auto* namesL = new QHBoxLayout();
     auto* buttL = new QHBoxLayout();
 
-    QFrame *line = new QFrame(this);
+    QFrame* line = new QFrame(this);
     line->setFrameShape(QFrame::HLine);
     line->setFrameShadow(QFrame::Sunken);
+
+    butt = new QPushButton("Шукати", this);
+    butt->setMinimumWidth(260);
 
     mainL->addWidget(line);
     mainL->addLayout(namesL);
@@ -27,8 +41,6 @@ CentralWidget::CentralWidget(QWidget* parent)
     firstName = new QLineEdit(this);
     secondName = new QLineEdit(this);
     fatherName = new QLineEdit(this);
-
-    progressBar = new QProgressBar();
 
     stroyova = new QCheckBox("СТРОЙОВА", this);
     bool strVal = setting.radioBtnLoad("STROYOVA_BTN");
@@ -62,8 +74,6 @@ CentralWidget::CentralWidget(QWidget* parent)
     rcText->setPlaceholderText("Пошук по РСним наказам");
 
     firstName->setText("Пур");
-    butt = new QPushButton("Шукати", this);
-    butt->setMinimumWidth(260);
 
     buttL->addStretch();
     buttL->addWidget(butt);
@@ -82,31 +92,68 @@ CentralWidget::CentralWidget(QWidget* parent)
         this, &CentralWidget::rcChanged);
 }
 
-void CentralWidget::startHeavyWork(QString& rootDir, SearchedName& names, const QString prossecName)
+void CentralWidget::startHeavyWork(QString& rootDir, SearchedName& names, const QString prossecName, QThread* thread)
 {
-    workerThread = new QThread(this);
+    thread = new QThread(this);
     worker = new HeavyWorkThread(rootDir, names, prossecName);
 
-    worker->moveToThread(workerThread);
+    worker->moveToThread(thread);
 
-    // 3️   Connections
-    connect(workerThread, &QThread::started,
+    connect(thread, &QThread::started,
         worker, &HeavyWorkThread::process);
 
     connect(worker, &HeavyWorkThread::finished,
         this, &CentralWidget::onHeavyWorkFinished);
 
     connect(worker, &HeavyWorkThread::finished,
-        workerThread, &QThread::quit);
+        thread, &QThread::quit);
 
-    connect(workerThread, &QThread::finished,
+    connect(thread, &QThread::finished,
         worker, &QObject::deleteLater);
 
-    connect(workerThread, &QThread::finished,
-        workerThread, &QObject::deleteLater);
+    connect(thread, &QThread::finished,
+        thread, &QObject::deleteLater);
 
-    // 4️⃣ Start
-    workerThread->start();
+    thread->start();
+}
+
+void CentralWidget::CentralWidget::startLoading(QTextEdit* edit, QTimer*& timer)
+{
+    if (LoadingFrames.isEmpty())
+        return; // safety
+
+    int step = 0;
+
+    if (timer) {
+        timer->stop();
+        timer->deleteLater();
+    }
+
+    timer = new QTimer(this);
+
+    connect(timer, &QTimer::timeout, this, [=]() mutable {
+        if (step < 0 || step >= LoadingFrames.size())
+            step = 0; // HARD safety reset
+
+        edit->setHtml(
+            QString(
+                "<div style='font-size:18pt; font-weight:700; text-align:center;'>%1</div>")
+                .arg(LoadingFrames.at(step)));
+
+        step = (step + 1) % LoadingFrames.size();
+    });
+
+    timer->start(200);
+}
+
+void CentralWidget::stopLoading(QTimer*& timer)
+{
+    if (!timer)
+        return;
+
+    timer->stop();
+    timer->deleteLater();
+    timer = nullptr;
 }
 
 void CentralWidget::onButtonClicked()
@@ -116,18 +163,16 @@ void CentralWidget::onButtonClicked()
     names.first = secondName->text();
     names.father = fatherName->text();
 
-    progressBar->setRange(0, 0); // busy animation
-    progressBar->setVisible(true);
-
-    butt->setEnabled(false);
+    if (stroyova->isChecked() || rc->isChecked())
+        butt->setEnabled(false);
 
     if (stroyova->isChecked()) {
         QString path = setting.loadFolder("STROYOVA_PATH");
         QString outText1;
-        QString outText2;
 
-        stroyovaText->setText("Шукає");
-        startHeavyWork(path, names, "STROYOVA");
+        stroyovaText->setReadOnly(true);
+        startLoading(stroyovaText, timerST);
+        startHeavyWork(path, names, "STROYOVA", stroyovaThread);
 
         radButtState1 = true;
     }
@@ -136,8 +181,9 @@ void CentralWidget::onButtonClicked()
         QString path = setting.loadFolder("PC_PATH");
         QString outText2;
 
-        rcText->setText("Шукає");
-        startHeavyWork(path, names, "PC");
+        rcText->setReadOnly(true);
+        startLoading(rcText, timerPC);
+        startHeavyWork(path, names, "PC", pcThread);
 
         radButtState2 = true;
     }
@@ -172,13 +218,17 @@ void CentralWidget::onHeavyWorkFinished(std::tuple<QString, OutputData, const QS
     if (get<2>(outData) == "STROYOVA") {
         qDebug() << "Change ~~STROYOVA~~";
         op1 = true;
+        stopLoading(timerST);
         stroyovaText->setText(get<0>(outData));
+        stroyovaText->setReadOnly(false);
     }
 
     if (get<2>(outData) == "PC") {
         qDebug() << "Change ~~PC~~";
         op2 = true;
+        stopLoading(timerPC);
         rcText->setText(get<0>(outData));
+        rcText->setReadOnly(false);
     }
 
     if (((radButtState1 == op1) && (radButtState2 == op2))) {
@@ -187,6 +237,5 @@ void CentralWidget::onHeavyWorkFinished(std::tuple<QString, OutputData, const QS
         op1 = false;
         op2 = false;
         butt->setEnabled(true);
-        progressBar->setVisible(false);
     }
 }

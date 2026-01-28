@@ -20,7 +20,9 @@ class CentralWidget : public QWidget {
 public:
     explicit CentralWidget(QWidget* parent = nullptr);
 
-    void startHeavyWork(QString& rootDir, SearchedName& names, const QString prossecName);
+    void startHeavyWork(QString& rootDir, SearchedName& names, const QString prossecName, QThread* thread);
+    void startLoading(QTextEdit* edit, QTimer*& timer);
+    void stopLoading(QTimer*& timer);
 
 private slots:
     void onButtonClicked();
@@ -46,9 +48,8 @@ private:
     OutputData logData1;
     OutputData logData2;
 
-    QThread* workerThread;
     HeavyWorkThread* worker;
-    QProgressBar* progressBar;
+    //QProgressBar* progressBar;
 
     QString outText1;
     QString outText2;
@@ -58,4 +59,10 @@ private:
 
     bool radButtState1 = false;
     bool radButtState2 = false;
+
+    QTimer* timerST = nullptr;
+    QTimer* timerPC = nullptr;
+
+    QThread* stroyovaThread = nullptr;
+    QThread* pcThread = nullptr;
 };

@@ -36,35 +36,33 @@ void SearchNames::searchNameInFile(const QString& rootDir, QString& outText, con
 
 MatchBeforeAndName SearchNames::findBeforeLastFirst(const QString& text, const SearchedName& names)
 {
-    // Build pattern with your inputs, escaped, and case-insensitive matching.
-    const QString pattern = QString::fromUtf8(
-        // R"((?<=^|\P{L})([\p{L}’ʼ'-]+)\p{Zs}+([\p{L}’ʼ'-]*%1[\p{L}’ʼ'-]*)\p{Zs}+([\p{L}’ʼ'-]*%2[\p{L}’ʼ'-]*)\p{Zs}+([\p{L}’ʼ'-]*%3[\p{L}’ʼ'-]*)(?=$|\P{L}))")
-        R"(([\p{L}’ʼ'-]+)\p{Zs}+([\p{L}’ʼ'-]*%1[\p{L}’ʼ'-]*)\p{Zs}+([\p{L}’ʼ'-]*%2[\p{L}’ʼ'-]*)\p{Zs}+([\p{L}’ʼ'-]*%3[\p{L}’ʼ'-]*)(?=$|\P{L}))")
-                                .arg(QRegularExpression::escape(names.last),
+    // %1 = Surname, %2 = First Name, %3 = Patronymic
+    // (?:^|\p{Zs}) ensures we start at the beginning of a word and there is a space or start-of-string before it.
+    const QString pattern = QString(R"((?:^|\p{Zs})([\p{L}’ʼ'-]*%1[\p{L}’ʼ'-]*)\p{Zs}+([\p{L}’ʼ'-]*%2[\p{L}’ʼ'-]*)\p{Zs}+([\p{L}’ʼ'-]*%3[\p{L}’ʼ'-]*)(?=$|\P{L}))")
+                                .arg(("(?<!\\p{L})" + QRegularExpression::escape(names.last) + "[\\p{L}’ʼ'-]*"),
                                     QRegularExpression::escape(names.first),
                                     QRegularExpression::escape(names.father));
 
-    QRegularExpression re(
-        pattern,
-        QRegularExpression::CaseInsensitiveOption | QRegularExpression::UseUnicodePropertiesOption);
+    QRegularExpression re(pattern, QRegularExpression::CaseInsensitiveOption);
 
     QRegularExpressionMatch m = re.match(text);
     MatchBeforeAndName res;
+
     if (m.hasMatch()) {
-        // captured(0) = whole match; captured(1)=before; the name parts we need to re-extract:
-        // Re-run a small regex on the matched span to split name parts exactly.
-        const QString span = m.captured(0);
-        // Split into tokens; last two tokens are the name we matched
-        const QStringList tokens = span.split(QRegularExpression(R"(\p{Zs}+)",
-                                                  QRegularExpression::UseUnicodePropertiesOption),
-            Qt::SkipEmptyParts);
-        if (tokens.size() >= 4) {
-            res.before = tokens[tokens.size() - 4];
-            res.names.last = tokens[tokens.size() - 3];
-            res.names.first = tokens[tokens.size() - 2];
-            res.names.father = tokens[tokens.size() - 1];
-            res.found = true;
-        }
+        // m.captured(1) is Surname
+        // m.captured(2) is First Name
+        // m.captured(3) is Patronymic
+        res.names.last = m.captured(1).trimmed();
+        res.names.first = m.captured(2).trimmed();
+        res.names.father = m.captured(3).trimmed();
+
+        // To get the "before" part (the word immediately preceding the name)
+        // We look at the text before the start of the surname
+        int matchStart = m.capturedStart(1);
+        QString textBefore = text.left(matchStart).trimmed();
+        res.before = textBefore.section(QRegularExpression(R"(\p{Zs}+)"), -1); // Get the very last word before the name
+
+        res.found = true;
     }
     return res;
 }
