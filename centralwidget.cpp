@@ -73,8 +73,6 @@ CentralWidget::CentralWidget(QWidget* parent)
     stroyovaText->setPlaceholderText("Пошук по СТРОЙОВИМ наказам");
     rcText->setPlaceholderText("Пошук по РСним наказам");
 
-    firstName->setText("Пур");
-
     buttL->addStretch();
     buttL->addWidget(butt);
     buttL->addStretch();

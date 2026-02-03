@@ -6,7 +6,8 @@ find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets)
 qt_standard_project_setup()
 
 qt_add_executable(NAME_Radar
-    WIN32 MACOSX_BUNDLE
+    WIN32
+    app.rc
     main.cpp
     mainwindow.cpp
     mainwindow.h
@@ -17,6 +18,7 @@ qt_add_executable(NAME_Radar
     searchnames.h searchnames.cpp
     sortfilebydate.h sortfilebydate.cpp
     heavyworkthread.h heavyworkthread.cpp
+
 )
 
 target_link_libraries(NAME_Radar
