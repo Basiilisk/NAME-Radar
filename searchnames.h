@@ -12,6 +12,6 @@ public:
     void searchNameInFile(const QString& rootDir, QString& outText, const SearchedName& names, OutputData& logs);
 
 private:
-    MatchBeforeAndName findBeforeLastFirst(const QString& text,
+    QVector<MatchBeforeAndName> findBeforeLastFirst(const QString& text,
         const SearchedName& names);
 };
