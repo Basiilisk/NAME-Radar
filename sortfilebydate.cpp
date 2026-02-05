@@ -59,21 +59,30 @@ int SortFileByDate::sortResultData(QString& outTempText, const OutputData& logs)
     int lastYear = -1;
     bool printedOthers = false;
 
-    for (const auto& r : rows) {
+    QString preLine;
+    QString sufix;
+    for (auto& r : rows) {
+        if (preLine == r.line.section(".doc", 0, 0))
+            sufix = "●";
+        else
+            sufix = "";
+
         if (r.hasDate) {
             int y = r.date.year();
             if (y != lastYear) {
                 printHeader(QString::number(y));
                 lastYear = y;
             }
-            outText += r.line + "\n";
+            outText += sufix + r.line + "\n";
         } else {
             if (!printedOthers) {
                 printHeader("OTHERS");
                 printedOthers = true;
             }
-            outText += r.line + "\n";
+            outText += sufix + r.line + "\n";
         }
+
+        preLine = r.line.section(".doc", 0, 0);
     }
 
     outTempText = outText;

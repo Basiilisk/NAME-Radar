@@ -38,8 +38,8 @@ void SearchNames::searchNameInFile(
         auto matches = findBeforeLastFirst(fullContent, names);
 
         for (const auto& m : matches) {
-            outText += QFileInfo(path).fileName()
-                + " : \t"
+            outText += QFileInfo(path).completeBaseName()
+                + ".doc : \t"
                 + m.names.last + " "
                 + m.names.first + " "
                 + m.names.father
