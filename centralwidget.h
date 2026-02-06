@@ -12,7 +12,7 @@
 #include "heavyworkthread.h"
 
 class QPushButton;
-class QLineEdit;
+class HighlightLineEdit;
 
 class CentralWidget : public QWidget {
     Q_OBJECT
@@ -31,9 +31,9 @@ private slots:
     void onHeavyWorkFinished(std::tuple<QString, OutputData, const QString> outData);
 
 private:
-    QLineEdit* firstName;
-    QLineEdit* secondName;
-    QLineEdit* fatherName;
+    HighlightLineEdit* firstName;
+    HighlightLineEdit* secondName;
+    HighlightLineEdit* fatherName;
 
     QCheckBox* stroyova;
     QCheckBox* rc;
@@ -49,7 +49,6 @@ private:
     OutputData logData2;
 
     HeavyWorkThread* worker;
-    //QProgressBar* progressBar;
 
     QString outText1;
     QString outText2;

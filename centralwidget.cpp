@@ -1,9 +1,20 @@
 #include "centralwidget.h"
 
 #include <QLayout>
-#include <QLineEdit>
 #include <QPushButton>
 #include <QTimer>
+
+#include "highlightlineedit.h"
+
+void settingHighlightLineEdit(HighlightLineEdit* lineEdit)
+{
+    lineEdit->setMinimumHeight(30);
+    auto font = lineEdit->font();
+    font.setPointSize(12);
+    lineEdit->setFont(font);
+}
+
+const QSize LineEditSize(309, 21);
 
 static const QStringList LoadingFrames = {
     "Ш",
@@ -31,6 +42,10 @@ CentralWidget::CentralWidget(QWidget* parent)
     butt = new QPushButton("Шукати", this);
     butt->setMinimumWidth(260);
 
+    auto font = butt->font();
+    font.setPointSize(11);
+    butt->setFont(font);
+
     mainL->addWidget(line);
     mainL->addLayout(namesL);
 
@@ -38,9 +53,13 @@ CentralWidget::CentralWidget(QWidget* parent)
     stroyovaText = new QTextEdit(this);
     rcText = new QTextEdit(this);
 
-    firstName = new QLineEdit(this);
-    secondName = new QLineEdit(this);
-    fatherName = new QLineEdit(this);
+    firstName = new HighlightLineEdit(this);
+    secondName = new HighlightLineEdit(this);
+    fatherName = new HighlightLineEdit(this);
+
+    settingHighlightLineEdit(firstName);
+    settingHighlightLineEdit(secondName);
+    settingHighlightLineEdit(fatherName);
 
     stroyova = new QCheckBox("СТРОЙОВА", this);
     bool strVal = setting.radioBtnLoad("STROYOVA_BTN");
@@ -166,7 +185,6 @@ void CentralWidget::onButtonClicked()
 
     if (stroyova->isChecked()) {
         QString path = setting.loadFolder("STROYOVA_PATH");
-        QString outText1;
 
         stroyovaText->setReadOnly(true);
         startLoading(stroyovaText, timerST);
@@ -177,7 +195,6 @@ void CentralWidget::onButtonClicked()
 
     if (rc->isChecked()) {
         QString path = setting.loadFolder("PC_PATH");
-        QString outText2;
 
         rcText->setReadOnly(true);
         startLoading(rcText, timerPC);

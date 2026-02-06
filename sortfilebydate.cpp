@@ -63,7 +63,7 @@ int SortFileByDate::sortResultData(QString& outTempText, const OutputData& logs)
     QString sufix;
     for (auto& r : rows) {
         if (preLine == r.line.section(".doc", 0, 0))
-            sufix = "●";
+            sufix = "●> ";
         else
             sufix = "";
 
@@ -74,11 +74,13 @@ int SortFileByDate::sortResultData(QString& outTempText, const OutputData& logs)
                 lastYear = y;
             }
             outText += sufix + r.line + "\n";
-        } else {
-            if (!printedOthers) {
-                printHeader("OTHERS");
-                printedOthers = true;
-            }
+        }
+
+        else if (!printedOthers && !r.line.isEmpty()) {
+
+            printHeader("OTHERS");
+            printedOthers = true;
+
             outText += sufix + r.line + "\n";
         }
 
