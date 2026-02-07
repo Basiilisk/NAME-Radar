@@ -7,7 +7,7 @@ HighlightLineEdit::HighlightLineEdit(QWidget* parent)
 
 void HighlightLineEdit::paintEvent(QPaintEvent* event)
 {
-    // 1. Draw the base widget first (background, cursor)
+    // 1. Base paint (draws the actual text, cursor, and focus frame)
     QLineEdit::paintEvent(event);
 
     QPainter painter(this);
@@ -15,43 +15,56 @@ void HighlightLineEdit::paintEvent(QPaintEvent* event)
     if (txt.isEmpty())
         return;
 
-    // QFontMetrics fm = fontMetrics();
+    QFontMetrics fm = fontMetrics();
+    QStyleOptionFrame panel;
+    initStyleOption(&panel);
 
-    // // Find the text starting position
-    // QStyleOptionFrame panel;
-    // initStyleOption(&panel);
-    // QRect textRect = style()->subElementRect(QStyle::SE_LineEditContents, &panel, this);
-    // painter.fillRect(textRect.adjusted(-2, 2, 2, -2), QColor(255, 255, 153, 100));
-    // int x_offset = textRect.left() + 2;
-    // int baseline = (height() + fm.ascent() - fm.descent()) / 2;
+    // SE_LineEditContents gives us the internal "typing area" rect
+    QRect textRect = style()->subElementRect(QStyle::SE_LineEditContents, &panel, this);
 
-    // // Regex for "Not Cyrillic, Not Space, Not Punctuation"
-    // // Adjust the "allowed" list inside the [^...] brackets
-    // QRegularExpression nonCyrillic("[^\\u0400-\\u04FF\\s\\.,!?\\-]");
+    // 2. The Absolute Scroll Fix
+    // We calculate the starting X by subtracting the width of text before the cursor
+    // from the actual cursor's visual position.
+    int textBeforeCursorWidth = fm.horizontalAdvance(txt.left(cursorPosition()));
+    int x_start = cursorRect().left() - textBeforeCursorWidth + 5;
 
-    // for (int i = 0; i < txt.length(); ++i) {
-    //     QString charStr = txt.at(i);
-    //     int charWidth = fm.horizontalAdvance(charStr);
+    // 3. Regex for Non-Cyrillic (Strict Hex Range)
+    static QRegularExpression nonCyrillic(R"([^\x{0400}-\x{04FF}\s\.,!?\-])");
 
-    //     // --- Highlight 1: The Space Symbol ---
-    //     if (charStr == " ") {
-    //         painter.fillRect(x_offset, textRect.top(), charWidth, textRect.height() - 4,
-    //             QColor(0, 89, 179, 100)); // Transparent red
-    //         // painter.setPen(QColor(180, 180, 180));
-    //         painter.drawText(x_offset, 0, charWidth, height(), Qt::AlignCenter, "");
-    //     }
+    // Prevent highlights from drawing over the widget borders
+    painter.setClipRect(textRect);
 
-    //     // // --- Highlight 2: Non-Cyrillic Detection ---
-    //     // else if (nonCyrillic.match(charStr).hasMatch()) {
-    //     //     // Draw a subtle red background for the "bad" character
-    //     //     painter.fillRect(x_offset, textRect.top() + 2, charWidth, textRect.height() - 4,
-    //     //         QColor(255, 0, 0, 50)); // Transparent red
+    for (int i = 0; i < txt.length(); ++i) {
+        // --- The "Anti-Drift" Calculation ---
+        // Instead of adding widths, we calculate the absolute start and end of this specific char.
+        // This handles cases where logical pixels != physical pixels.
+        int charStartRel = fm.horizontalAdvance(txt.left(i));
+        int charEndRel = fm.horizontalAdvance(txt.left(i + 1));
+        int exactWidth = charEndRel - charStartRel;
 
-    //     //     // Optional: Draw the character itself in red to make it pop
-    //     //     painter.setPen(Qt::red);
-    //     //     painter.drawText(x_offset, baseline, charStr);
-    //     // }
+        int drawX = x_start + charStartRel;
 
-    //     x_offset += charWidth;
-    // }
+        // Only draw if the character is inside the visible area
+        if (drawX + exactWidth >= textRect.left() && drawX <= textRect.right()) {
+
+            QChar c = txt.at(i);
+
+            // --- Highlight 1: Spaces (Blue) ---
+            if (c == ' ') {
+                // 'exactWidth - 1' creates a 1px gap so multiple spaces don't look like a solid bar
+                painter.fillRect(drawX, textRect.top() + 2, exactWidth, textRect.height(),
+                    QColor(255, 77, 77, 160));
+            }
+
+            // --- Highlight 2: Non-Cyrillic (Red) ---
+            else if (nonCyrillic.match(c).hasMatch()) {
+                painter.fillRect(drawX, textRect.top() + 2, exactWidth, textRect.height(),
+                    QColor(102, 204, 255, 160));
+            }
+        }
+
+        // Optimization: if we are already past the right edge, stop looping
+        if (drawX > textRect.right())
+            break;
+    }
 }

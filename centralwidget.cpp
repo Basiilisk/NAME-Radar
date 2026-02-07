@@ -8,9 +8,9 @@
 
 void settingHighlightLineEdit(HighlightLineEdit* lineEdit)
 {
-    lineEdit->setMinimumHeight(30);
+    lineEdit->setMinimumHeight(26);
     auto font = lineEdit->font();
-    font.setPointSize(12);
+    font.setPointSize(11);
     lineEdit->setFont(font);
 }
 
@@ -152,10 +152,12 @@ void CentralWidget::CentralWidget::startLoading(QTextEdit* edit, QTimer*& timer)
         if (step < 0 || step >= LoadingFrames.size())
             step = 0; // HARD safety reset
 
-        edit->setHtml(
-            QString(
-                "<div style='font-size:18pt; font-weight:700; text-align:center;'>%1</div>")
-                .arg(LoadingFrames.at(step)));
+        edit->setText(LoadingFrames.at(step));
+        QFont font = edit->font();
+        font.setBold(true);
+        font.setPointSize(18);
+        edit->setFont(font);
+        edit->setAlignment(Qt::AlignCenter);
 
         step = (step + 1) % LoadingFrames.size();
     });
@@ -211,6 +213,7 @@ void CentralWidget::stroyovaChanged(bool state)
         setting.radioBtnSave("STROYOVA_BTN", true);
     } else {
         stroyovaText->hide();
+        stroyovaText->clear();
         setting.radioBtnSave("STROYOVA_BTN", false);
     }
 }
@@ -222,28 +225,41 @@ void CentralWidget::rcChanged(bool state)
         setting.radioBtnSave("RC_BTN", true);
     } else {
         rcText->hide();
+        rcText->clear();
         setting.radioBtnSave("RC_BTN", false);
     }
 }
 
 void CentralWidget::onHeavyWorkFinished(std::tuple<QString, OutputData, const QString> outData)
 {
+    auto showText = [&](QTextEdit* textEdit, bool& op) {
+        op = true;
+
+        QFont font = textEdit->font();
+        font.setBold(false);
+        font.setPointSize(9);
+        textEdit->setFont(font);
+
+        textEdit->setText(get<0>(outData));
+        textEdit->setReadOnly(false);
+    };
+
     std::tuple<QString, OutputData, const QString> data = outData;
 
     if (get<2>(outData) == "STROYOVA") {
         qDebug() << "Change ~~STROYOVA~~";
-        op1 = true;
+
         stopLoading(timerST);
-        stroyovaText->setText(get<0>(outData));
-        stroyovaText->setReadOnly(false);
+
+        showText(stroyovaText, op1);
     }
 
     if (get<2>(outData) == "PC") {
         qDebug() << "Change ~~PC~~";
-        op2 = true;
+
         stopLoading(timerPC);
-        rcText->setText(get<0>(outData));
-        rcText->setReadOnly(false);
+
+        showText(rcText, op2);
     }
 
     if (((radButtState1 == op1) && (radButtState2 == op2))) {
