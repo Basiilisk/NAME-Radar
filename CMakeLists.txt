@@ -19,6 +19,7 @@ qt_add_executable(NAME_Radar
     sortfilebydate.h sortfilebydate.cpp
     heavyworkthread.h heavyworkthread.cpp
     highlightlineedit.h highlightlineedit.cpp
+    convertortotxt.h convertortotxt.cpp
 
 )
 
