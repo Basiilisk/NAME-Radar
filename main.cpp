@@ -1,7 +1,8 @@
-#include "convertortotxt.h"
 #include "mainwindow.h"
 
 #include <QApplication>
+
+#include "Convertor/convertormanager.h"
 
 int main(int argc, char* argv[])
 {
@@ -12,16 +13,14 @@ int main(int argc, char* argv[])
 
     //w.show();
 
-    QString inputPath = R"(C:\Users\svyat\Desktop\НАКАЗИ\TEST_DATA\raw_STROYOVA)";
-    QString outputPath = R"(C:\Users\svyat\Desktop\НАКАЗИ\TEST_DATA\converted)";
+    const QString inputPath = R"(C:/Users/svyat/Desktop/НАКАЗИ/TEST_DATA/raw_STROYOVA)";
+    const QString dataBasePath = R"(../../Convertor/DadaBase/NameRadarDB.db)";
 
-
-    ConvertorToTxt convert;
+    ConvertorManager convert;
     qDebug() << "\t__________START__________\n";
-    convert.processDirectory(inputPath, outputPath);
+    convert.convertFiles(inputPath, dataBasePath);
 
     qDebug() << "\n\n\t__________FINISH__________";
-
 
     return a.exec();
 }

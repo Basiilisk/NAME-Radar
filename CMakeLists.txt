@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.19)
 project(NAME_Radar LANGUAGES CXX)
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets Sql)
 
 qt_standard_project_setup()
 
@@ -19,7 +19,16 @@ qt_add_executable(NAME_Radar
     sortfilebydate.h sortfilebydate.cpp
     heavyworkthread.h heavyworkthread.cpp
     highlightlineedit.h highlightlineedit.cpp
-    convertortotxt.h convertortotxt.cpp
+
+    Convertor/convertormanager.h
+    Convertor/convertormanager.cpp
+    Convertor/hashutils.h
+    Convertor/hashutils.cpp
+    Convertor/filescanner.h Convertor/filescanner.cpp
+
+    Convertor/libreofficeconverter.h Convertor/libreofficeconverter.cpp
+
+    Convertor/DadaBase/databasemanager.h Convertor/DadaBase/databasemanager.cpp
 
 )
 
@@ -27,6 +36,7 @@ target_link_libraries(NAME_Radar
     PRIVATE
         Qt::Core
         Qt::Widgets
+        Qt::Sql
 )
 
 include(GNUInstallDirs)
