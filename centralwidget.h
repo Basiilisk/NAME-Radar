@@ -20,7 +20,7 @@ class CentralWidget : public QWidget {
 public:
     explicit CentralWidget(QWidget* parent = nullptr);
 
-    void startHeavyWork(QString& rootDir, SearchedName& names, const QString prossecName, QThread* thread);
+    void startHeavyWork(const QString& dbPath, SearchedName& names, const QString prossecName, QThread*& thread);
     void startLoading(QTextEdit* edit, QTimer*& timer);
     void stopLoading(QTimer*& timer);
 

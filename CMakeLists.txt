@@ -29,7 +29,7 @@ qt_add_executable(NAME_Radar
     Convertor/libreofficeconverter.h Convertor/libreofficeconverter.cpp
 
     Convertor/DadaBase/databasemanager.h Convertor/DadaBase/databasemanager.cpp
-
+    convertorform.h convertorform.cpp
 )
 
 target_link_libraries(NAME_Radar

@@ -1,5 +1,8 @@
 #pragma once
 
+#include "centralwidget.h"
+#include "convertorform.h"
+
 #include <QMainWindow>
 
 QT_BEGIN_NAMESPACE
@@ -20,5 +23,6 @@ public:
 private:
     Ui::MainWindow* ui;
 
-    QWidget* central;
+    CentralWidget* central;
+    ConvertorForm* convertor;
 };

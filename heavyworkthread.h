@@ -7,10 +7,10 @@
 #include "sortfilebydate.h"
 
 class HeavyWorkThread : public QObject {
-
     Q_OBJECT
+
 public:
-    HeavyWorkThread(const QString rootDir, const SearchedName& names, const QString processName, QObject* parent = nullptr);
+    HeavyWorkThread(const QString dbPath, const SearchedName& names, const QString processName, QObject* parent = nullptr);
 
     void heavyWork();
 
@@ -26,7 +26,8 @@ private:
 
     const QString processName;
     const SearchedName names;
-    const QString rootDir;
+    const QString dbPath;
+
     QString outText;
     OutputData logs;
 };

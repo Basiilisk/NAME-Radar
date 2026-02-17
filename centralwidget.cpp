@@ -1,5 +1,6 @@
 #include "centralwidget.h"
 
+#include <QCoreApplication>
 #include <QLayout>
 #include <QPushButton>
 #include <QTimer>
@@ -109,27 +110,32 @@ CentralWidget::CentralWidget(QWidget* parent)
         this, &CentralWidget::rcChanged);
 }
 
-void CentralWidget::startHeavyWork(QString& rootDir, SearchedName& names, const QString prossecName, QThread* thread)
+void CentralWidget::startHeavyWork(const QString& dbPath, SearchedName& names, const QString prossecName, QThread*& thread)
 {
+    // Захист від повторного запуску вже активного потоку
+    if (thread && thread->isRunning()) {
+        return;
+    }
+
     thread = new QThread(this);
-    worker = new HeavyWorkThread(rootDir, names, prossecName);
+    worker = new HeavyWorkThread(dbPath, names, prossecName);
 
     worker->moveToThread(thread);
 
     connect(thread, &QThread::started,
-        worker, &HeavyWorkThread::process);
+            worker, &HeavyWorkThread::process);
 
     connect(worker, &HeavyWorkThread::finished,
-        this, &CentralWidget::onHeavyWorkFinished);
+            this, &CentralWidget::onHeavyWorkFinished);
 
     connect(worker, &HeavyWorkThread::finished,
-        thread, &QThread::quit);
+            thread, &QThread::quit);
 
     connect(thread, &QThread::finished,
-        worker, &QObject::deleteLater);
+            worker, &QObject::deleteLater);
 
     connect(thread, &QThread::finished,
-        thread, &QObject::deleteLater);
+            thread, &QObject::deleteLater);
 
     thread->start();
 }
@@ -178,29 +184,31 @@ void CentralWidget::stopLoading(QTimer*& timer)
 void CentralWidget::onButtonClicked()
 {
     SearchedName names;
-    names.last = firstName->text();
-    names.first = secondName->text();
-    names.father = fatherName->text();
+    names.last = firstName->text().trimmed();
+    names.first = secondName->text().trimmed();
+    names.father = fatherName->text().trimmed();
 
     if (stroyova->isChecked() || rc->isChecked())
         butt->setEnabled(false);
 
     if (stroyova->isChecked()) {
-        QString path = setting.loadFolder("STROYOVA_PATH");
+        // Шлях до БД Стройової біля програми
+        QString dbPath = QCoreApplication::applicationDirPath() + "/NameRadarDB_STROYOVA.db";
 
         stroyovaText->setReadOnly(true);
         startLoading(stroyovaText, timerST);
-        startHeavyWork(path, names, "STROYOVA", stroyovaThread);
+        startHeavyWork(dbPath, names, "STROYOVA", stroyovaThread);
 
         radButtState1 = true;
     }
 
     if (rc->isChecked()) {
-        QString path = setting.loadFolder("PC_PATH");
+        // Шлях до БД РС біля програми
+        QString dbPath = QCoreApplication::applicationDirPath() + "/NameRadarDB_PC.db";
 
         rcText->setReadOnly(true);
         startLoading(rcText, timerPC);
-        startHeavyWork(path, names, "PC", pcThread);
+        startHeavyWork(dbPath, names, "PC", pcThread);
 
         radButtState2 = true;
     }
