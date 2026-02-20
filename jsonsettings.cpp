@@ -7,24 +7,17 @@ JSONSettings::JSONSettings(QObject* parent)
 {
 }
 
-bool JSONSettings::chooseAndSaveFolder(const QString& name, QWidget* parent)
+void JSONSettings::saveFolder(const QString& name, const QString& path)
 {
-    QString folderPath = QFileDialog::getExistingDirectory(
-        parent, name,
-        loadFolder(name),
-        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-
-    if (folderPath.isEmpty())
-        return false;
+    if (path.isEmpty())
+        return;
 
     QJsonObject settings = load();
-    QJsonObject path = settings.value("Path").toObject();
-    path[name] = folderPath;
-    settings["Path"] = path;
+    QJsonObject savePath = settings.value("Path").toObject();
+    savePath[name] = path;
+    settings["Path"] = savePath;
 
     save(settings);
-
-    return true;
 }
 
 QString JSONSettings::loadFolder(const QString& name) const

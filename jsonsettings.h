@@ -10,7 +10,7 @@ static QString settingsFilePath()
 {
     return QStandardPaths::writableLocation(
                QStandardPaths::AppConfigLocation)
-        + "/Name_Radar_settings.json";
+        + "/Name_Radar_V2_settings.json";
 }
 
 static QJsonObject load()
@@ -31,15 +31,17 @@ static void save(const QJsonObject& obj)
         file.close();
     }
 }
-
 class JSONSettings : public QObject {
     Q_OBJECT
 
 public:
     JSONSettings(QObject* parent = nullptr);
 
-    bool chooseAndSaveFolder(const QString& name, QWidget* parent = nullptr);
+    // Новий метод, який просто приймає ключ та готовий шлях
+    void saveFolder(const QString& name, const QString& path);
+
     QString loadFolder(const QString& name) const;
+
     void radioBtnSave(const QString& name, bool state);
     bool radioBtnLoad(const QString& name);
 };

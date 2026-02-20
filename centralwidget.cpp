@@ -36,9 +36,9 @@ CentralWidget::CentralWidget(QWidget* parent)
     auto* namesL = new QHBoxLayout();
     auto* buttL = new QHBoxLayout();
 
-    QFrame* line = new QFrame(this);
-    line->setFrameShape(QFrame::HLine);
-    line->setFrameShadow(QFrame::Sunken);
+    // QFrame* line = new QFrame(this);
+    // line->setFrameShape(QFrame::HLine);
+    // line->setFrameShadow(QFrame::Sunken);
 
     butt = new QPushButton("Шукати", this);
     butt->setMinimumWidth(260);
@@ -47,7 +47,7 @@ CentralWidget::CentralWidget(QWidget* parent)
     font.setPointSize(11);
     butt->setFont(font);
 
-    mainL->addWidget(line);
+    //mainL->addWidget(line);
     mainL->addLayout(namesL);
 
     splitter = new QSplitter(Qt::Horizontal);
@@ -77,6 +77,28 @@ CentralWidget::CentralWidget(QWidget* parent)
 
     auto* rcL = new QVBoxLayout();
     rcL->addWidget(rcText);
+
+
+    QString glassStyle = R"(
+        QTextEdit {
+            /* Задаємо напівпрозорий колір самій рамці віджета */
+            background-color: transparent; /* Зливаються з фоном вікна (#121212) */
+            color: #ffffff;
+            border: 1px solid #444444;
+            border-radius: 6px;
+            padding: 5px;
+        }
+        QTextEdit viewport {
+            /* НАЙГОЛОВНІШИЙ РЯДОК: робимо внутрішню зону повністю прозорою */
+            background-color: transparent; /* Зливаються з фоном вікна (#121212) */
+        }
+        QTextEdit:focus {
+            border: 2px solid #555555;
+        }
+    )";
+
+    stroyovaText->setStyleSheet(glassStyle);
+    rcText->setStyleSheet(glassStyle);
 
     splitter->addWidget(stroyovaText);
     splitter->addWidget(rcText);

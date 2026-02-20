@@ -6,9 +6,12 @@
 #include "hashutils.h"
 #include "libreofficeconverter.h"
 
-ConvertorManager::ConvertorManager() { }
+ConvertorManager::ConvertorManager(QObject* obj)
+    : QObject(obj)
+{
+}
 
-void ConvertorManager::convertFiles(const QString& sourceRoot, const QString& dbPath)
+void ConvertorManager::convertFiles(const QString& sourceRoot, const QString& dbPath, QTextEdit* textEditLog)
 {
     cancelRequested = false;
 
@@ -75,7 +78,14 @@ void ConvertorManager::convertFiles(const QString& sourceRoot, const QString& db
             QString relativePath = rootDirObj.relativeFilePath(inputPath);
             QString hash = hashesToUpdate.at(i);
 
-            qDebug().noquote() << QString("[%1/%2] Обробка: %3").arg(i + 1).arg(convertCount).arg(relativePath);
+            QString log1 = QString("[%1/%2] Обробка: %3").arg(i + 1).arg(convertCount).arg(relativePath);
+            qDebug().noquote() << log1;
+
+            textEditLog->append(log1);
+            // Force the cursor to the end
+            QTextCursor cursor = textEditLog->textCursor();
+            cursor.movePosition(QTextCursor::End);
+            textEditLog->setTextCursor(cursor);
 
             QString errorMsg;
             QString documentText = LibreOfficeConverter::extractText(inputPath, errorMsg);
