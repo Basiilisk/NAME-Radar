@@ -47,7 +47,7 @@ CentralWidget::CentralWidget(QWidget* parent)
     font.setPointSize(11);
     butt->setFont(font);
 
-    //mainL->addWidget(line);
+    // mainL->addWidget(line);
     mainL->addLayout(namesL);
 
     splitter = new QSplitter(Qt::Horizontal);
@@ -77,7 +77,6 @@ CentralWidget::CentralWidget(QWidget* parent)
 
     auto* rcL = new QVBoxLayout();
     rcL->addWidget(rcText);
-
 
     QString glassStyle = R"(
         QTextEdit {
@@ -134,30 +133,34 @@ CentralWidget::CentralWidget(QWidget* parent)
 
 void CentralWidget::startHeavyWork(const QString& dbPath, SearchedName& names, const QString prossecName, QThread*& thread)
 {
-    // Захист від повторного запуску вже активного потоку
+    // Захист від повторного запуску
     if (thread && thread->isRunning()) {
         return;
     }
 
+    // Якщо потік закінчив роботу, але вказівник ще не очистився
+    if (thread && !thread->isRunning()) {
+        thread = nullptr;
+    }
+
     thread = new QThread(this);
-    worker = new HeavyWorkThread(dbPath, names, prossecName);
+
+    auto* worker = new HeavyWorkThread(dbPath, names, prossecName);
 
     worker->moveToThread(thread);
 
-    connect(thread, &QThread::started,
-            worker, &HeavyWorkThread::process);
+    connect(thread, &QThread::started, worker, &HeavyWorkThread::process);
+    connect(worker, &HeavyWorkThread::finished, this, &CentralWidget::onHeavyWorkFinished);
+    connect(worker, &HeavyWorkThread::finished, thread, &QThread::quit);
+    connect(thread, &QThread::finished, worker, &QObject::deleteLater);
+    connect(thread, &QThread::finished, thread, &QObject::deleteLater);
 
-    connect(worker, &HeavyWorkThread::finished,
-            this, &CentralWidget::onHeavyWorkFinished);
-
-    connect(worker, &HeavyWorkThread::finished,
-            thread, &QThread::quit);
-
-    connect(thread, &QThread::finished,
-            worker, &QObject::deleteLater);
-
-    connect(thread, &QThread::finished,
-            thread, &QObject::deleteLater);
+    // МАГІЯ: Як тільки об'єкт потоку фізично видалиться з пам'яті,
+    // ми безпечно обнуляємо вказівник (stroyovaThread або pcThread)
+    QThread** threadPtr = &thread;
+    connect(thread, &QObject::destroyed, this, [threadPtr]() {
+        *threadPtr = nullptr;
+    });
 
     thread->start();
 }
@@ -190,7 +193,7 @@ void CentralWidget::CentralWidget::startLoading(QTextEdit* edit, QTimer*& timer)
         step = (step + 1) % LoadingFrames.size();
     });
 
-    timer->start(200);
+    timer->start(100);
 }
 
 void CentralWidget::stopLoading(QTimer*& timer)

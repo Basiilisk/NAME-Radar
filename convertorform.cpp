@@ -330,7 +330,7 @@ ConvertorForm::ConvertorForm(QWidget* parent)
         }
 
         convert->setEnabled(false);
-        //convert->setText("Конвертація виконується...");
+        // convert->setText("Конвертація виконується...");
 
         // Конвертуємо Стройову (якщо шлях вказано)
         if (!pathStroyova.isEmpty()) {
@@ -345,7 +345,7 @@ ConvertorForm::ConvertorForm(QWidget* parent)
         }
 
         convert->setEnabled(true);
-        //convert->setText("Конвертація виконана...");
+        // convert->setText("Конвертація виконана...");
         QMessageBox::information(this, "Готово", "Процес конвертації завершено!");
     });
 
