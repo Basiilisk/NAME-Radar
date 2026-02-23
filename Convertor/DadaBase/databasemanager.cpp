@@ -6,27 +6,45 @@
 #include <QSqlQuery>
 #include <QVariant>
 
-DatabaseManager::DatabaseManager()
+DatabaseManager::DatabaseManager(const QString& convertDBName)
 {
-    db = QSqlDatabase::addDatabase("QSQLITE");
+    // 1. Перевіряємо, чи підключення з таким іменем вже існує в пам'яті Qt
+    if (QSqlDatabase::contains(convertDBName)) {
+        db = QSqlDatabase::database(convertDBName);
+    }
+
+    else {
+        db = QSqlDatabase::addDatabase("QSQLITE", convertDBName);
+        qDebug() << "2convertDBName: " << convertDBName;
+    }
 }
 
 DatabaseManager::~DatabaseManager()
 {
+    // Зберігаємо ім'я підключення перед тим, як його закрити
+    QString connectionName = db.connectionName();
+
     if (db.isOpen()) {
         db.close();
     }
+
+    // 2. Правильне видалення підключення з реєстру Qt,
+    // щоб не було помилки "duplicate connection" при наступному запуску
+    db = QSqlDatabase(); // Обнуляємо саму змінну, щоб вона відпустила базу
+    QSqlDatabase::removeDatabase(connectionName); // Видаляємо ім'я
 }
 
 bool DatabaseManager::initDatabase(const QString& dbFilePath)
 {
+    qDebug() << "2dbFilePath: " << dbFilePath;
+
     db.setDatabaseName(dbFilePath);
     if (!db.open()) {
         qDebug() << "Критична помилка: Не вдалося відкрити базу даних:" << db.lastError().text();
         return false;
     }
 
-    QSqlQuery query;
+    QSqlQuery query(db); // ТУТ ВСЕ ПРАВИЛЬНО (передали db)
     QString createTableQuery = "CREATE TABLE IF NOT EXISTS documents ("
                                "relative_path TEXT PRIMARY KEY, "
                                "hash TEXT, "
@@ -42,7 +60,7 @@ bool DatabaseManager::initDatabase(const QString& dbFilePath)
 
 DatabaseManager::FileStatus DatabaseManager::getFileStatus(const QString& relativePath, const QString& compositeHash)
 {
-    QSqlQuery query;
+    QSqlQuery query(db); // <--- ВАЖЛИВО: ПЕРЕДАЄМО db!
     query.prepare("SELECT hash FROM documents WHERE relative_path = :path");
     query.bindValue(":path", relativePath);
 
@@ -59,7 +77,7 @@ DatabaseManager::FileStatus DatabaseManager::getFileStatus(const QString& relati
 
 bool DatabaseManager::upsertDocument(const QString& relativePath, const QString& compositeHash, const QString& textContent)
 {
-    QSqlQuery query;
+    QSqlQuery query(db); // <--- ВАЖЛИВО: ПЕРЕДАЄМО db!
     query.prepare("REPLACE INTO documents (relative_path, hash, content) VALUES (:path, :hash, :content)");
     query.bindValue(":path", relativePath);
     query.bindValue(":hash", compositeHash);
@@ -77,7 +95,9 @@ QStringList DatabaseManager::getDeletedFiles(const QStringList& currentRelativeP
     QStringList deletedFiles;
     QSet<QString> diskPaths(currentRelativePathsOnDisk.begin(), currentRelativePathsOnDisk.end());
 
-    QSqlQuery query("SELECT relative_path FROM documents");
+    // <--- ВАЖЛИВО: ПЕРЕДАЄМО db ДРУГИМ ПАРАМЕТРОМ!
+    QSqlQuery query("SELECT relative_path FROM documents", db);
+
     while (query.next()) {
         QString pathInDb = query.value(0).toString();
         if (!diskPaths.contains(pathInDb)) {
@@ -89,7 +109,7 @@ QStringList DatabaseManager::getDeletedFiles(const QStringList& currentRelativeP
 
 bool DatabaseManager::removeDocument(const QString& relativePath)
 {
-    QSqlQuery query;
+    QSqlQuery query(db); // <--- ВАЖЛИВО: ПЕРЕДАЄМО db!
     query.prepare("DELETE FROM documents WHERE relative_path = :path");
     query.bindValue(":path", relativePath);
     return query.exec();

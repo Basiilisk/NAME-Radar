@@ -60,8 +60,8 @@ private:
     bool radButtState2 = false;
 
     QTimer* timerST = nullptr;
-    QTimer* timerPC = nullptr;
+    QTimer* timerRS = nullptr;
 
     QThread* stroyovaThread = nullptr;
-    QThread* pcThread = nullptr;
+    QThread* rsThread = nullptr;
 };

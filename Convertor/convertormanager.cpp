@@ -11,24 +11,22 @@ ConvertorManager::ConvertorManager(QObject* obj)
 {
 }
 
-void ConvertorManager::convertFiles(const QString& sourceRoot, const QString& dbPath, QTextEdit* textEditLog)
+void ConvertorManager::convertFiles(const QString& convertDBName, const QString& sourceRoot, const QString& dbPath, QTextEdit* textEditLog)
 {
     cancelRequested = false;
 
-    DatabaseManager dbManager;
+    DatabaseManager dbManager(convertDBName);
+
     if (!dbManager.initDatabase(dbPath)) {
         return;
     }
 
-    qDebug() << "Сканую директорію на наявність документів...";
     QStringList currentFiles = FileScanner::getWordDocuments(sourceRoot);
 
     if (currentFiles.isEmpty()) {
-        qDebug() << "Документів не знайдено.";
+        textEditLog->append("Документів не знайдено.");
         return;
     }
-
-    qDebug() << "Звіряю файли з базою даних...";
 
     QStringList filesToConvert;
     QStringList hashesToUpdate;
@@ -61,8 +59,8 @@ void ConvertorManager::convertFiles(const QString& sourceRoot, const QString& db
 
     if (convertCount > 0) {
         QDateTime startTime = QDateTime::currentDateTime();
-        qDebug() << "\nПочаток обробки:" << startTime.toString("hh:mm:ss");
-        qDebug() << "До конвертації заявлено файлів:" << convertCount;
+        textEditLog->append(QString("Початок обробки: %1").arg(startTime.toString("hh:mm:ss")));
+        textEditLog->append(QString("До конвертації заявлено файлів: %1").arg(convertCount));
 
         for (int i = 0; i < convertCount; ++i) {
             // Дозволяємо інтерфейсу оновлюватися та реєструвати натискання кнопок
@@ -70,7 +68,7 @@ void ConvertorManager::convertFiles(const QString& sourceRoot, const QString& db
 
             // Перевіряємо, чи користувач натиснув "Відмінити"
             if (cancelRequested) {
-                qDebug() << "\n[ПРОЦЕС ПЕРЕРВАНО КОРИСТУВАЧЕМ]";
+                textEditLog->append("[ПРОЦЕС ПЕРЕРВАНО КОРИСТУВАЧЕМ]");
                 break;
             }
 
@@ -117,7 +115,7 @@ void ConvertorManager::convertFiles(const QString& sourceRoot, const QString& db
         }
 
         QDateTime endTime = QDateTime::currentDateTime();
-        qDebug() << "\nКінець обробки:" << endTime.toString("hh:mm:ss");
+        textEditLog->append(QString("Кінець обробки: %1").arg(endTime.toString("hh:mm:ss")));
 
         qint64 elapsedSeconds = startTime.secsTo(endTime);
         qint64 minutes = elapsedSeconds / 60;
@@ -125,7 +123,7 @@ void ConvertorManager::convertFiles(const QString& sourceRoot, const QString& db
 
         qDebug().noquote() << QString("Загальний час виконання: %1 хв %2 сек").arg(minutes).arg(seconds);
     } else {
-        qDebug() << "Всі файли актуальні. Конвертація не потрібна.";
+        textEditLog->append("Всі файли актуальні. Конвертація не потрібна.");
     }
 
     // Очищення виконується незалежно від того, чи був процес перерваний
@@ -135,11 +133,11 @@ void ConvertorManager::convertFiles(const QString& sourceRoot, const QString& db
         dbManager.removeDocument(delPath);
     }
 
-    qDebug() << "\n=== ПІДСУМКОВИЙ ЗВІТ ===";
-    qDebug() << "Пропущено (вже в базі):   " << unchangedCount;
-    qDebug() << "Успішно додано/оновлено:  " << successCount;
-    qDebug() << "Помилок при обробці:      " << errorCount;
-    qDebug() << "Видалено старих записів:  " << deletedFiles.size();
+    textEditLog->append("\n=== ПІДСУМКОВИЙ ЗВІТ ===");
+    textEditLog->append(QString("Пропущено (вже в базі):  %1").arg(unchangedCount));
+    textEditLog->append(QString("Успішно додано/оновлено:   %1").arg(successCount));
+    textEditLog->append(QString("Помилок при обробці:       %1").arg(errorCount));
+    textEditLog->append(QString("Видалено старих записів:   %1").arg(deletedFiles.size()));
 }
 
 void ConvertorManager::writeErrorToLog(const QString& fileName, const QString& errorMsg)

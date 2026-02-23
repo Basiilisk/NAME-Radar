@@ -17,7 +17,9 @@ void SearchNames::searchNameInDatabase(const QString& dbPath, const QString& con
 
     // Створюємо ізольоване підключення для конкретного потоку
     {
+        qDebug() << "1connectionName: " << connectionName;
         QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", connectionName);
+        qDebug() << "1dbPath: " << dbPath;
         db.setDatabaseName(dbPath);
 
         if (!db.open()) {
@@ -33,20 +35,20 @@ void SearchNames::searchNameInDatabase(const QString& dbPath, const QString& con
 
         while (query.next()) {
             // Запобігає зависанню GUI під час тривалого пошуку
-            QCoreApplication::processEvents();
+            //QCoreApplication::processEvents();
 
             QString path = query.value(0).toString();
             QString fullContent = query.value(1).toString();
 
             ++logs.allFiles;
-
-            if (!names.last.isEmpty() && !fullContent.contains(names.last, Qt::CaseInsensitive)) {
-                continue;
-            }
-            if (!names.first.isEmpty() && !fullContent.contains(names.first, Qt::CaseInsensitive)) {
-                continue;
-            }
-
+// ..
+//             if (!names.last.isEmpty() && !fullContent.contains(names.last, Qt::CaseInsensitive)) {
+//                 continue;
+//             }
+//             if (!names.first.isEmpty() && !fullContent.contains(names.first, Qt::CaseInsensitive)) {
+//                 continue;
+//             }
+// ..
             fullContent.replace('\r', ' ');
 
             auto matches = findBeforeLastFirst(fullContent, names);

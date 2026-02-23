@@ -15,7 +15,8 @@ public:
 private:
     QPushButton* convert = nullptr;
     QPushButton* cancel = nullptr;
-    QPushButton* deleteAll = nullptr;
+    QPushButton* deleteAllRS_BD = nullptr;
+    QPushButton* deleteAllStroyouva_BD = nullptr;
 
     QTextEdit* logText = nullptr;
     std::unique_ptr<ConvertorManager> converManager;

@@ -29,7 +29,7 @@ QString LibreOfficeConverter::extractText(const QString& inputFilePath, QString&
 
     QStringList args;
     args << "--headless" << "--invisible" << "--nologo" << "--nodefault"
-         << "--convert-to" << "txt:Text"
+         << "--convert-to" << "txt:Text (encoded):UTF8"
          << "--outdir" << QDir::toNativeSeparators(tempDir.path())
          << QDir::toNativeSeparators(inputFilePath);
 

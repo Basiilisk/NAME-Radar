@@ -12,7 +12,7 @@ class ConvertorManager : public QObject {
 public:
     ConvertorManager(QObject* obj = nullptr);
 
-    void convertFiles(const QString& sourceRoot, const QString& dbPath, QTextEdit* textEditLog);
+    void convertFiles(const QString& convertDBName, const QString& sourceRoot, const QString& dbPath, QTextEdit* textEditLog);
 
     void writeErrorToLog(const QString& fileName, const QString& errorMsg);
 

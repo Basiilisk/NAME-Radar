@@ -156,7 +156,7 @@ void CentralWidget::startHeavyWork(const QString& dbPath, SearchedName& names, c
     connect(thread, &QThread::finished, thread, &QObject::deleteLater);
 
     // МАГІЯ: Як тільки об'єкт потоку фізично видалиться з пам'яті,
-    // ми безпечно обнуляємо вказівник (stroyovaThread або pcThread)
+    // ми безпечно обнуляємо вказівник (stroyovaThread або rsThread)
     QThread** threadPtr = &thread;
     connect(thread, &QObject::destroyed, this, [threadPtr]() {
         *threadPtr = nullptr;
@@ -222,18 +222,18 @@ void CentralWidget::onButtonClicked()
 
         stroyovaText->setReadOnly(true);
         startLoading(stroyovaText, timerST);
-        startHeavyWork(dbPath, names, "STROYOVA", stroyovaThread);
+        startHeavyWork(dbPath, names, Names::Stroyova, stroyovaThread);
 
         radButtState1 = true;
     }
 
     if (rc->isChecked()) {
         // Шлях до БД РС біля програми
-        QString dbPath = QCoreApplication::applicationDirPath() + "/NameRadarDB_PC.db";
+        QString dbPath = QCoreApplication::applicationDirPath() + "/NameRadarDB_RS.db";
 
         rcText->setReadOnly(true);
-        startLoading(rcText, timerPC);
-        startHeavyWork(dbPath, names, "PC", pcThread);
+        startLoading(rcText, timerRS);
+        startHeavyWork(dbPath, names, Names::Rs, rsThread);
 
         radButtState2 = true;
     }
@@ -279,7 +279,7 @@ void CentralWidget::onHeavyWorkFinished(std::tuple<QString, OutputData, const QS
 
     std::tuple<QString, OutputData, const QString> data = outData;
 
-    if (get<2>(outData) == "STROYOVA") {
+    if (get<2>(outData) == Names::Stroyova) {
         qDebug() << "Change ~~STROYOVA~~";
 
         stopLoading(timerST);
@@ -287,10 +287,10 @@ void CentralWidget::onHeavyWorkFinished(std::tuple<QString, OutputData, const QS
         showText(stroyovaText, op1);
     }
 
-    if (get<2>(outData) == "PC") {
-        qDebug() << "Change ~~PC~~";
+    if (get<2>(outData) == Names::Rs) {
+        qDebug() << "Change ~~RS~~";
 
-        stopLoading(timerPC);
+        stopLoading(timerRS);
 
         showText(rcText, op2);
     }

@@ -11,6 +11,8 @@
 #include <QStyle>
 #include <QVBoxLayout>
 
+#include "StructUSE.h"
+
 const QString colorPath = "#53d2ff";
 const QString colorNew = "#448D76";
 const QString colorMod = "#FB8604";
@@ -260,69 +262,22 @@ ConvertorForm::ConvertorForm(QWidget* parent)
 
     convert = new QPushButton("Конвертувати", this);
     cancel = new QPushButton("Відмінити конвертування", this);
-    deleteAll = new QPushButton("Очистити всі записи", this);
+    deleteAllRS_BD = new QPushButton("Очистити БД РС наказами", this);
+    deleteAllStroyouva_BD = new QPushButton("Очистити БД Стройовими наказами", this);
 
-    buttL->addSpacing(100);
+    // buttL->addSpacing(100);
     buttL->addWidget(convert);
     buttL->addWidget(cancel);
-    buttL->addSpacing(150);
-    buttL->addWidget(deleteAll);
-    buttL->addSpacing(100);
-
-    // QVBoxLayout* convLayout = new QVBoxLayout(converterTab);
-
-    // // Створюємо елементи для вкладки конвертера
-    // QLabel* labelTitle = new QLabel("<b>Налаштування шляхів та конвертація</b>", this);
-    // QPushButton* btnPathStroyova = new QPushButton("Вказати папку: СТРОЙОВА", this);
-    // QPushButton* btnPathRC = new QPushButton("Вказати папку: РС", this);
-
-    // QFrame* line = new QFrame(this);
-    // line->setFrameShape(QFrame::HLine);
-    // line->setFrameShadow(QFrame::Sunken);
-
-    // QPushButton* convert = new QPushButton("Запустити конвертацію", this);
-    // convert->setMinimumHeight(40);
-
-    // // Додаємо віджети на сторінку
-    // convLayout->addWidget(labelTitle);
-    // convLayout->addSpacing(10);
-    // convLayout->addWidget(btnPathStroyova);
-    // convLayout->addWidget(btnPathRC);
-    // convLayout->addSpacing(20);
-    // convLayout->addWidget(line);
-    // convLayout->addSpacing(20);
-    // convLayout->addWidget(convert);
-    // convLayout->addStretch(); // Виштовхує всі кнопки вгору
-
-    // mainTabs->addTab(converterTab, "База даних (Конвертер)");
-
-    // // Встановлюємо вкладки як головний елемент вікна
-    // setCentralWidget(mainTabs);
-
-    // // ==========================================
-    // // ПІДКЛЮЧЕННЯ КНОПОК
-    // // ==========================================
-
-    // // Кнопки вибору шляхів (замість старого меню)
-    // connect(btnPathStroyova, &QPushButton::clicked, this, [this]() {
-    //     JSONSettings setting;
-    //     if (setting.chooseAndSaveFolder("STROYOVA_PATH", this)) {
-    //         QMessageBox::information(this, "Успіх", "Шлях для СТРОЙОВА успішно збережено!");
-    //     }
-    // });
-
-    // connect(btnPathRC, &QPushButton::clicked, this, [this]() {
-    //     JSONSettings setting;
-    //     if (setting.chooseAndSaveFolder("PC_PATH", this)) {
-    //         QMessageBox::information(this, "Успіх", "Шлях для РС успішно збережено!");
-    //     }
-    // });
+    // buttL->addSpacing(150);
+    buttL->addWidget(deleteAllRS_BD);
+    buttL->addWidget(deleteAllStroyouva_BD);
+    // buttL->addSpacing(100);
 
     // Кнопка запуску конвертації
     connect(convert, &QPushButton::clicked, this, [&]() {
         JSONSettings setting;
         QString pathStroyova = setting.loadFolder("STROYOVA_PATH");
-        QString pathRC = setting.loadFolder("PC_PATH");
+        QString pathRC = setting.loadFolder("RS_PATH");
 
         if (pathStroyova.isEmpty() && pathRC.isEmpty()) {
             QMessageBox::warning(this, "Помилка", "Спочатку вкажіть шляхи до папок!");
@@ -330,24 +285,60 @@ ConvertorForm::ConvertorForm(QWidget* parent)
         }
 
         convert->setEnabled(false);
-        // convert->setText("Конвертація виконується...");
 
         // Конвертуємо Стройову (якщо шлях вказано)
         if (!pathStroyova.isEmpty()) {
             const QString dbPath = QCoreApplication::applicationDirPath() + "/NameRadarDB_STROYOVA.db";
-            converManager->convertFiles(pathStroyova, dbPath, logText);
+            converManager->convertFiles(Names::Stroyova, pathStroyova, dbPath, logText);
         }
 
         // Конвертуємо РС (якщо шлях вказано)
         if (!pathRC.isEmpty()) {
-            const QString dbPath = QCoreApplication::applicationDirPath() + "/NameRadarDB_PC.db";
-            converManager->convertFiles(pathRC, dbPath, logText);
+            const QString dbPath = QCoreApplication::applicationDirPath() + "/NameRadarDB_RS.db";
+            converManager->convertFiles(Names::Rs, pathRC, dbPath, logText);
         }
 
         convert->setEnabled(true);
-        // convert->setText("Конвертація виконана...");
         QMessageBox::information(this, "Готово", "Процес конвертації завершено!");
     });
 
     connect(cancel, &QPushButton::clicked, converManager.get(), &ConvertorManager::on_btnCancel_clicked);
+
+    connect(deleteAllRS_BD, &QPushButton::clicked, this, [&]() {
+        // Запитуємо підтвердження у користувача
+        QMessageBox::StandardButton reply = QMessageBox::question(this, "Підтвердження",
+            "Ви впевнені, що хочете видалити\nвсі конвертовані дані РСних наказів?",
+            QMessageBox::Yes | QMessageBox::No);
+
+        if (reply == QMessageBox::Yes) {
+            QString rsDbPath = QCoreApplication::applicationDirPath() + "/NameRadarDB_RS.db";
+
+            bool rsDeleted = QFile::remove(rsDbPath);
+
+            if (rsDeleted) {
+                QMessageBox::information(this, "Готово", "Бази даних успішно очищені (видалені).");
+            } else {
+                QMessageBox::information(this, "Інформація", "Бази даних вже порожні або не існують.");
+            }
+        }
+    });
+
+    connect(deleteAllStroyouva_BD, &QPushButton::clicked, this, [&]() {
+        // Запитуємо підтвердження у користувача
+        QMessageBox::StandardButton reply = QMessageBox::question(this, "Підтвердження",
+            "Ви впевнені, що хочете видалити\nвсі конвертовані дані наказів по стройовій?",
+            QMessageBox::Yes | QMessageBox::No);
+
+        if (reply == QMessageBox::Yes) {
+            QString stroyDbPath = QCoreApplication::applicationDirPath() + "/NameRadarDB_STROYOVA.db";
+
+            bool stroyDeleted = QFile::remove(stroyDbPath);
+
+            if (stroyDeleted) {
+                QMessageBox::information(this, "Готово", "Бази даних успішно очищені (видалені).");
+            } else {
+                QMessageBox::information(this, "Інформація", "Бази даних вже порожні або не існують.");
+            }
+        }
+    });
 }

@@ -2,6 +2,12 @@
 
 #include <QString>
 
+// Threads's and basedata's names
+namespace Names {
+    inline const QString Rs = QStringLiteral("RS");
+    inline const QString Stroyova = QStringLiteral("STROYOVA");
+}
+
 struct OutputData {
     int allFiles = 0;
     int searchedNames = 0;
