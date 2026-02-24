@@ -9,6 +9,7 @@
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QStyle>
+#include <QThread>
 #include <QVBoxLayout>
 
 #include "StructUSE.h"
@@ -39,7 +40,6 @@ void setStyleLabel(QLabel* label, const QString& color)
 
 ConvertorForm::ConvertorForm(QWidget* parent)
     : QWidget(parent)
-    , converManager(std::make_unique<ConvertorManager>())
 {
     auto* mainL = new QVBoxLayout(this);
     auto* logL = new QHBoxLayout();
@@ -58,6 +58,7 @@ ConvertorForm::ConvertorForm(QWidget* parent)
     mainL->addLayout(buttL);
 
     logText = new QTextEdit(this);
+    logText->setReadOnly(true);
     logText->setPlaceholderText("Інфа по конвертації");
     // Додай цей код у конструктор CentralWidget після створення stroyovaText та rcText
 
@@ -274,7 +275,7 @@ ConvertorForm::ConvertorForm(QWidget* parent)
     // buttL->addSpacing(100);
 
     // Кнопка запуску конвертації
-    connect(convert, &QPushButton::clicked, this, [&]() {
+    connect(convert, &QPushButton::clicked, this, [this]() {
         JSONSettings setting;
         QString pathStroyova = setting.loadFolder("STROYOVA_PATH");
         QString pathRC = setting.loadFolder("RS_PATH");
@@ -284,25 +285,37 @@ ConvertorForm::ConvertorForm(QWidget* parent)
             return;
         }
 
+        // Готуємо інтерфейс
         convert->setEnabled(false);
+        cancel->setEnabled(true);
+        // logText->clear();
+        taskQueue.clear();
 
-        // Конвертуємо Стройову (якщо шлях вказано)
+        // Формуємо чергу (закидаємо туди те, що обрав користувач)
         if (!pathStroyova.isEmpty()) {
-            const QString dbPath = QCoreApplication::applicationDirPath() + "/NameRadarDB_STROYOVA.db";
-            converManager->convertFiles(Names::Stroyova, pathStroyova, dbPath, logText);
+            taskQueue.append({ Names::Stroyova, pathStroyova, QCoreApplication::applicationDirPath() + "/NameRadarDB_STROYOVA.db" });
         }
-
-        // Конвертуємо РС (якщо шлях вказано)
         if (!pathRC.isEmpty()) {
-            const QString dbPath = QCoreApplication::applicationDirPath() + "/NameRadarDB_RS.db";
-            converManager->convertFiles(Names::Rs, pathRC, dbPath, logText);
+            taskQueue.append({ Names::Rs, pathRC, QCoreApplication::applicationDirPath() + "/NameRadarDB_RS.db" });
         }
 
-        convert->setEnabled(true);
-        QMessageBox::information(this, "Готово", "Процес конвертації завершено!");
+        // Запускаємо конвеєр!
+        convertTask();
     });
 
-    connect(cancel, &QPushButton::clicked, converManager.get(), &ConvertorManager::on_btnCancel_clicked);
+    // 2. Кнопка "Відмінити"
+    cancel->setEnabled(false); // За замовчуванням вимкнена
+    connect(cancel, &QPushButton::clicked, this, [this]() {
+        if (convertWorker) {
+            convertWorker->cancel(); // Кажемо поточному потоку зупинитися
+            cancel->setEnabled(false);
+
+            // Очищаємо чергу, щоб після зупинки першої папки друга НЕ почала конвертуватися
+            taskQueue.clear();
+
+            logText->append("<font color='orange'><b>Надсилаємо команду зупинки...</b></font>");
+        }
+    });
 
     connect(deleteAllRS_BD, &QPushButton::clicked, this, [&]() {
         // Запитуємо підтвердження у користувача
@@ -372,4 +385,51 @@ ConvertorForm::ConvertorForm(QWidget* parent)
             }
         }
     });
+}
+
+void ConvertorForm::convertTask()
+{
+    // Якщо черга порожня - ми все конвертували!
+    if (taskQueue.isEmpty()) {
+        convert->setEnabled(true);
+        cancel->setEnabled(false);
+        QMessageBox::information(this, "Готово", "Всі процеси конвертації завершено!");
+        return;
+    }
+
+    // Беремо перше завдання з черги
+    ConversionTask task = taskQueue.takeFirst();
+
+    logText->append(QString("<br><font color='#53d2ff'><b>=== ПОЧАТОК КОНВЕРТАЦІЇ: %1 ===</b></font>").arg(task.name));
+
+    // СТВОРЮЄМО ФОНОВИЙ ПОТІК
+    QThread* thread = new QThread(this);
+    convertWorker = new ConvertorWorker(task.name, task.sourceRoot, task.dbPath);
+    convertWorker->moveToThread(thread);
+
+    connect(thread, &QThread::started, convertWorker, &ConvertorWorker::process);
+
+    // Ловимо логи
+    connect(convertWorker, &ConvertorWorker::logMessage, this, [this](const QString& msg) {
+        logText->append(msg);
+        QTextCursor cursor = logText->textCursor();
+        cursor.movePosition(QTextCursor::End);
+        logText->setTextCursor(cursor);
+    });
+
+    // Очищення пам'яті воркера
+    connect(convertWorker, &ConvertorWorker::finished, this, [this, thread]() {
+        convertWorker->deleteLater();
+        convertWorker = nullptr;
+        thread->quit();
+    });
+
+    // МАГІЯ: Коли потік повністю зупинився - запускаємо наступне завдання з черги
+    connect(thread, &QThread::finished, this, [this, thread]() {
+        thread->deleteLater();
+        convertTask();
+    });
+
+    // Стартуємо!
+    thread->start();
 }

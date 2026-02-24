@@ -30,6 +30,7 @@ qt_add_executable(NAME_Radar
 
     Convertor/DadaBase/databasemanager.h Convertor/DadaBase/databasemanager.cpp
     convertorform.h convertorform.cpp
+    Convertor/convertorworker.h Convertor/convertorworker.cpp
 )
 
 target_link_libraries(NAME_Radar
