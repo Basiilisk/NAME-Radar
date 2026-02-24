@@ -92,12 +92,12 @@ ConvertorForm::ConvertorForm(QWidget* parent)
     setStyleLabel(delF, colorDel);
 
     logL->addLayout(rightL);
-    rightL->addSpacing(150);
+    // rightL->addSpacing(150);
     rightL->addLayout(pathL, 4);
-    rightL->addSpacing(150);
+    // rightL->addSpacing(150);
     rightL->addStretch(3);
     rightL->addLayout(statL, 3);
-    rightL->addSpacing(150);
+    // rightL->addSpacing(150);
 
     JSONSettings setting;
 
@@ -318,7 +318,23 @@ ConvertorForm::ConvertorForm(QWidget* parent)
             if (rsDeleted) {
                 QMessageBox::information(this, "Готово", "Бази даних успішно очищені (видалені).");
             } else {
-                QMessageBox::information(this, "Інформація", "Бази даних вже порожні або не існують.");
+
+                QFile file(rsDbPath);
+                // 3. If it failed, it is likely Read-Only. Let's force permissions.
+                QFileDevice::Permissions currentPermissions = file.permissions();
+
+                // Add Write permission for the current user
+                if (file.setPermissions(currentPermissions | QFileDevice::WriteUser)) {
+
+                    // 4. Try deleting it again now that we have permission
+                    if (file.remove()) {
+                        QMessageBox::information(this, "Готово", "нарешті видалено");
+                    }
+
+                    else {
+                        QMessageBox::information(this, "Інформація", "Жопа");
+                    }
+                }
             }
         }
     });
@@ -337,7 +353,22 @@ ConvertorForm::ConvertorForm(QWidget* parent)
             if (stroyDeleted) {
                 QMessageBox::information(this, "Готово", "Бази даних успішно очищені (видалені).");
             } else {
-                QMessageBox::information(this, "Інформація", "Бази даних вже порожні або не існують.");
+                QFile file(stroyDbPath);
+                // 3. If it failed, it is likely Read-Only. Let's force permissions.
+                QFileDevice::Permissions currentPermissions = file.permissions();
+
+                // Add Write permission for the current user
+                if (file.setPermissions(currentPermissions | QFileDevice::WriteUser)) {
+
+                    // 4. Try deleting it again now that we have permission
+                    if (file.remove()) {
+                        QMessageBox::information(this, "Готово", "нарешті видалено");
+                    }
+
+                    else {
+                        QMessageBox::information(this, "Інформація", "Жопа");
+                    }
+                }
             }
         }
     });

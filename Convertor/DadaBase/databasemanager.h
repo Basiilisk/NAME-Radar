@@ -13,6 +13,9 @@ public:
         Modified
     };
 
+    static bool isDatabaseValid(const QString& dbPath);
+    static bool deleteDatabase(const QString& dbPath);
+
     explicit DatabaseManager(const QString& convertDBName);
     ~DatabaseManager();
 

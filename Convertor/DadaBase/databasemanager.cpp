@@ -1,10 +1,35 @@
 #include "databasemanager.h"
 
 #include <QDebug>
+#include <QFile>
 #include <QSet>
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QVariant>
+
+bool DatabaseManager::isDatabaseValid(const QString& dbPath)
+{
+    QFile file(dbPath);
+    // Якщо файлу немає або він порожній (0 байт) - повертаємо false
+    if (!file.exists() || file.size() == 0) {
+        return false;
+    }
+    return true;
+}
+
+bool DatabaseManager::deleteDatabase(const QString& dbPath)
+{
+    if (QFile::exists(dbPath)) {
+        if (QFile::remove(dbPath)) {
+            qDebug() << "Базу даних успішно видалено:" << dbPath;
+            return true;
+        } else {
+            qWarning() << "Не вдалося видалити БД (можливо, зайнята іншим процесом):" << dbPath;
+            return false;
+        }
+    }
+    return true; // Якщо файлу і так не було - все ок
+}
 
 DatabaseManager::DatabaseManager(const QString& convertDBName)
 {

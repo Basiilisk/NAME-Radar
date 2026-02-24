@@ -109,7 +109,8 @@ MainWindow::MainWindow(QWidget* parent)
 
     setCentralWidget(mainTabs);
 
-    // mainTabs->setCurrentIndex(1);
+    mainTabs->setCurrentIndex(1);
+
     //mainTabs->setStyleSheet("background-color: rgba(0, 0, 0, 30);"); // Fully transparent white background
     //setStyleSheet("background-color: rgba(0, 0, 0, 30);"); // Fully transparent white background
 }

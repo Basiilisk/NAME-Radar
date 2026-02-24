@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QRegularExpression>
+#include <QSqlDatabase>
 #include <QString>
 
 #include "StructUSE.h"
@@ -10,7 +11,7 @@ public:
     SearchNames();
 
     void searchNameInDatabase(const QString& dbPath,
-        const QString& connectionName,
+        const QString& convertDBName,
         QString& outText,
         const SearchedName& names,
         OutputData& logs);

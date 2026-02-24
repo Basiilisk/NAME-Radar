@@ -3,69 +3,84 @@
 #include <QCoreApplication>
 #include <QDebug>
 #include <QFileInfo>
-#include <QSqlDatabase>
+#include <QMessageBox>
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QVariant>
 
+#include "Convertor/DadaBase/databasemanager.h"
+
 SearchNames::SearchNames() { }
 
-void SearchNames::searchNameInDatabase(const QString& dbPath, const QString& connectionName, QString& outText, const SearchedName& names, OutputData& logs)
+void SearchNames::searchNameInDatabase(const QString& dbPath, const QString& convertDBName, QString& outText, const SearchedName& names, OutputData& logs)
 {
     if (names.last.isEmpty() && names.first.isEmpty() && names.father.isEmpty())
         return;
 
-    // Створюємо ізольоване підключення для конкретного потоку
+    // 1. ЗАХИСТ ВІД СТВОРЕННЯ ПУСТУШОК
+    if (!DatabaseManager::isDatabaseValid(dbPath)) {
+        qWarning() << "База даних відсутня або порожня. Пошук скасовано:" << dbPath;
+        return;
+    }
+
+    // 2. Створюємо ізольоване підключення для конкретного потоку
     {
-        qDebug() << "1connectionName: " << connectionName;
-        QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", connectionName);
-        qDebug() << "1dbPath: " << dbPath;
+        QSqlDatabase db;
+
+        if (QSqlDatabase::contains(convertDBName)) {
+            db = QSqlDatabase::database(convertDBName);
+        } else {
+            db = QSqlDatabase::addDatabase("QSQLITE", convertDBName);
+        }
+
         db.setDatabaseName(dbPath);
 
+        // Замість того, щоб робити return при помилці, ми використовуємо if/else,
+        // щоб код безпечно дійшов до кінця і видалив підключення
         if (!db.open()) {
-            qWarning() << "Помилка відкриття БД у потоці" << connectionName << ":" << db.lastError().text();
-            return;
-        }
+            qWarning() << "Помилка відкриття БД у потоці" << convertDBName << ":" << db.lastError().text();
 
-        QSqlQuery query(db);
-        if (!query.exec("SELECT relative_path, content FROM documents")) {
-            qWarning() << "Помилка виконання запиту до БД:" << query.lastError().text();
-            return;
-        }
+        } else {
+            QSqlQuery query(db);
+            if (!query.exec("SELECT relative_path, content FROM documents")) {
+                qWarning() << "Помилка виконання запиту до БД:" << query.lastError().text();
+            } else {
+                // Якщо все добре - виконуємо пошук
+                while (query.next()) {
+                    QString path = query.value(0).toString();
+                    QString fullContent = query.value(1).toString();
 
-        while (query.next()) {
-            // Запобігає зависанню GUI під час тривалого пошуку
-            //QCoreApplication::processEvents();
+                    ++logs.allFiles;
 
-            QString path = query.value(0).toString();
-            QString fullContent = query.value(1).toString();
+                    if (!names.last.isEmpty() && !fullContent.contains(names.last, Qt::CaseInsensitive)) {
+                        continue;
+                    }
+                    if (!names.first.isEmpty() && !fullContent.contains(names.first, Qt::CaseInsensitive)) {
+                        continue;
+                    }
 
-            ++logs.allFiles;
-// ..
-//             if (!names.last.isEmpty() && !fullContent.contains(names.last, Qt::CaseInsensitive)) {
-//                 continue;
-//             }
-//             if (!names.first.isEmpty() && !fullContent.contains(names.first, Qt::CaseInsensitive)) {
-//                 continue;
-//             }
-// ..
-            fullContent.replace('\r', ' ');
+                    fullContent.replace('\r', ' ');
 
-            auto matches = findBeforeLastFirst(fullContent, names);
+                    auto matches = findBeforeLastFirst(fullContent, names);
 
-            for (const auto& m : matches) {
-                outText += QFileInfo(path).completeBaseName()
-                    + ".doc : \t"
-                    + m.names.last + " "
-                    + m.names.first + " "
-                    + m.names.father
-                    + "\n";
+                    for (const auto& m : matches) {
+                        outText += QFileInfo(path).completeBaseName()
+                            + ".doc : \t"
+                            + m.names.last + " "
+                            + m.names.first + " "
+                            + m.names.father
+                            + "\n";
 
-                ++logs.searchedNames;
+                        ++logs.searchedNames;
+                    }
+                }
             }
+            db.close();
         }
-    } // db виходить із зони видимості та закривається
-    QSqlDatabase::removeDatabase(connectionName);
+    }
+
+    // ТЕПЕР БЕЗПЕЧНО ВИДАЛЯЄМО ІМ'Я ПІДКЛЮЧЕННЯ
+    QSqlDatabase::removeDatabase(convertDBName);
 }
 
 QVector<MatchBeforeAndName> SearchNames::findBeforeLastFirst(const QString& text, const SearchedName& names)
