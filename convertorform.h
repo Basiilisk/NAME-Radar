@@ -5,6 +5,7 @@
 #include <QWidget>
 
 #include "Convertor/convertorworker.h"
+#include "jsonsettings.h"
 
 class ConvertorForm : public QWidget {
     Q_OBJECT
@@ -12,7 +13,13 @@ class ConvertorForm : public QWidget {
 public:
     ConvertorForm(QWidget* parent = nullptr);
 
+signals:
+    void enabledTabs(bool enable);
+
 private:
+    void stroyovaCBChanged(bool state);
+    void rcCBChanged(bool state);
+
     QPushButton* convert = nullptr;
     QPushButton* cancel = nullptr;
     QPushButton* deleteAllRS_BD = nullptr;
@@ -29,6 +36,8 @@ private:
         QString dbPath;
     };
     QList<ConversionTask> taskQueue;
+
+    JSONSettings jsonSetting;
 
     // МЕТОД, ЯКИЙ БУДЕ БРАТИ ЗАВДАННЯ З ЧЕРГИ
     void convertTask();

@@ -48,43 +48,54 @@ int SortFileByDate::sortResultData(QString& outTempText, const OutputData& logs)
         return a.line < b.line; // tiebreaker by text
     });
 
-    outText = "\n\t|Searched " + QString::number(logs.searchedNames) + " from " + QString::number(logs.allFiles) + "|\n\n";
+    outText = "\n\t|Знайдено імен " + QString::number(logs.searchedNames) + " в " + QString::number(logs.allFiles) + " файлах|\n\n";
 
     auto printHeader = [&](const QString& label) {
-        outText += "___________________________________________________________\n";
-        outText += "______________________|" + label + "|____________________________________\n";
-        outText += "___________________________________________________________\n";
+        outText += "_________________________________________________________________________\n";
+        outText += "====================== |" + label + "| ======================\n";
+        outText += "‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\n";
     };
 
     int lastYear = -1;
     bool printedOthers = false;
 
     QString preLine;
+    QString nextLine;
     QString sufix;
-    for (auto& r : rows) {
-        if (preLine == r.line.section(".doc", 0, 0))
-            sufix = "●> ";
+    for (auto r = rows.begin(); r != rows.end(); ++r) {
+        const QString currText = r->line.section(".doc", 0, 0);
+        if ((r + 1) != rows.end())
+            nextLine = (r + 1)->line.section(".doc", 0, 0);
+        else
+            nextLine = "";
+
+        if (currText == nextLine && preLine == nextLine) {
+            sufix = "├> ";
+        }
+
+        else if (preLine == currText)
+            sufix = "└> ";
         else
             sufix = "";
 
-        if (r.hasDate) {
-            int y = r.date.year();
+        if (r->hasDate) {
+            int y = r->date.year();
             if (y != lastYear) {
                 printHeader(QString::number(y));
                 lastYear = y;
             }
-            outText += sufix + r.line + "\n";
+            outText += sufix + r->line + "\n";
         }
 
-        else if (!printedOthers && !r.line.isEmpty()) {
+        else if (!printedOthers && !r->line.isEmpty()) {
 
             printHeader("OTHERS");
             printedOthers = true;
 
-            outText += sufix + r.line + "\n";
+            outText += sufix + r->line + "\n";
         }
 
-        preLine = r.line.section(".doc", 0, 0);
+        preLine = r->line.section(".doc", 0, 0);
     }
 
     outTempText = outText;

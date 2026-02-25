@@ -19,7 +19,7 @@ MainWindow::MainWindow(QWidget* parent)
     resize(1100, 600);
 
     // 1. Створюємо головний контейнер вкладок
-    QTabWidget* mainTabs = new QTabWidget(this);
+    mainTabs = new QTabWidget(this);
     // mainTabs->setDocumentMode(true);
 
     // mainTabs->setStyleSheet(
@@ -111,11 +111,23 @@ MainWindow::MainWindow(QWidget* parent)
 
     mainTabs->setCurrentIndex(1);
 
-    //mainTabs->setStyleSheet("background-color: rgba(0, 0, 0, 30);"); // Fully transparent white background
-    //setStyleSheet("background-color: rgba(0, 0, 0, 30);"); // Fully transparent white background
+    connect(central, &CentralWidget::enabledTabs, this, &MainWindow::setEnabledTabs);
+    connect(convertor, &ConvertorForm::enabledTabs, this, &MainWindow::setEnabledTabs);
+
+    // mainTabs->setStyleSheet("background-color: rgba(0, 0, 0, 30);"); // Fully transparent white background
+    // setStyleSheet("background-color: rgba(0, 0, 0, 30);"); // Fully transparent white background
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+void MainWindow::setEnabledTabs(bool enable)
+{
+    for (int i = 0; i < mainTabs->count(); ++i) {
+        if (i == mainTabs->currentIndex())
+            continue;
+        mainTabs->setTabEnabled(i, enable);
+    }
 }

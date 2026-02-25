@@ -24,6 +24,9 @@ public:
     void startLoading(QTextEdit* edit, QTimer*& timer);
     void stopLoading(QTimer*& timer);
 
+signals:
+    void enabledTabs(bool enable);
+
 private slots:
     void onButtonClicked();
     void stroyovaChanged(bool state);
@@ -35,8 +38,8 @@ private:
     HighlightLineEdit* secondName;
     HighlightLineEdit* fatherName;
 
-    QCheckBox* stroyova;
-    QCheckBox* rc;
+    QCheckBox* stroyovaCB;
+    QCheckBox* rcCB;
 
     QTextEdit* stroyovaText;
     QTextEdit* rcText;

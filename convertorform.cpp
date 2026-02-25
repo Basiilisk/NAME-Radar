@@ -1,7 +1,6 @@
 #include "convertorform.h"
 
-#include "jsonsettings.h"
-
+#include <QCheckBox>
 #include <QCoreApplication>
 #include <QFileDialog>
 #include <QFrame>
@@ -38,10 +37,32 @@ void setStyleLabel(QLabel* label, const QString& color)
             .arg(color));
 }
 
+void settingFrame(QFrame* frame)
+{
+    auto* newF = new QLabel(frame);
+    newF->setText("Нові файли:\t239/239");
+    setStyleLabel(newF, colorNew);
+
+    QLabel modF(frame);
+    modF.setText("Змінені файли:\t0/239");
+    setStyleLabel(&modF, colorMod);
+
+    QLabel delF(frame);
+    delF.setText("Видалені файли:\t23/239");
+    setStyleLabel(&delF, colorDel);
+
+    auto* labelsL = new QVBoxLayout(frame);
+
+    labelsL->addWidget(newF);
+    labelsL->addWidget(&modF);
+    labelsL->addWidget(&delF);
+}
+
 ConvertorForm::ConvertorForm(QWidget* parent)
     : QWidget(parent)
 {
     auto* mainL = new QVBoxLayout(this);
+    auto* checkBoxsL = new QHBoxLayout();
     auto* logL = new QHBoxLayout();
     auto* rightL = new QVBoxLayout();
     auto* statL = new QVBoxLayout();
@@ -80,34 +101,43 @@ ConvertorForm::ConvertorForm(QWidget* parent)
 
     logL->addWidget(logText);
 
-    QLabel* newF = new QLabel(this);
-    newF->setText("Нові файли:\t239/239");
-    setStyleLabel(newF, colorNew);
-
-    QLabel* modF = new QLabel(this);
-    modF->setText("Змінені файли:\t0/239");
-    setStyleLabel(modF, colorMod);
-
-    QLabel* delF = new QLabel(this);
-    delF->setText("Видалені файли:\t23/239");
-    setStyleLabel(delF, colorDel);
-
     logL->addLayout(rightL);
     // rightL->addSpacing(150);
-    rightL->addLayout(pathL, 4);
+    rightL->addLayout(checkBoxsL);
+    rightL->addLayout(pathL);
     // rightL->addSpacing(150);
     rightL->addStretch(3);
-    rightL->addLayout(statL, 3);
+    rightL->addLayout(statL);
     // rightL->addSpacing(150);
 
-    JSONSettings setting;
+    auto* stroyovaCheckBox = new QCheckBox("Накази стройова", this);
+    bool strVal = jsonSetting.radioBtnLoad("STROYOVA_CONV_BTN");
+    stroyovaCheckBox->setChecked(strVal);
+    stroyovaCBChanged(strVal);
+
+    auto* rcCheckBox = new QCheckBox("Накази РС", this);
+    bool rcVal = jsonSetting.radioBtnLoad("RC_CONV_BTN");
+    rcCheckBox->setChecked(rcVal);
+    rcCBChanged(rcVal);
+
+    checkBoxsL->addWidget(stroyovaCheckBox);
+    checkBoxsL->addWidget(rcCheckBox);
+
+    auto* frameRS = new QFrame(this);
+    auto* frameSTR = new QFrame(this);
+
+    // settingFrame(frameSTR);
+    // settingFrame(frameRS);
+
+    connect(stroyovaCheckBox, &QCheckBox::toggled, this, &ConvertorForm::stroyovaCBChanged);
+    connect(rcCheckBox, &QCheckBox::toggled, this, &ConvertorForm::rcCBChanged);
 
     QLineEdit* stroyovaPath = new QLineEdit(this);
     stroyovaPath->setPlaceholderText("Оберіть шлях до папки з наказами по стройовій");
     stroyovaPath->setMinimumHeight(30);
 
     // ОДРАЗУ ЗАВАНТАЖУЄМО ЗБЕРЕЖЕНИЙ ШЛЯХ (якщо він є)
-    stroyovaPath->setText(setting.loadFolder("STROYOVA_PATH"));
+    stroyovaPath->setText(jsonSetting.loadFolder("STROYOVA_PATH"));
 
     stroyovaPath->setStyleSheet(
         QString(
@@ -125,7 +155,7 @@ ConvertorForm::ConvertorForm(QWidget* parent)
 
     // 1. Створюємо дію (Action) з іконкою
     QIcon sysFolderIcon = style()->standardIcon(QStyle::SP_DirIcon);
-    QAction* browseActionStroyova = new QAction(sysFolderIcon, "Огляд", this);
+    QAction* browseActionStroyova = new QAction(sysFolderIcon, "Стройова", this);
 
     // 2. Додаємо цю дію всередину QLineEdit у праву частину
     stroyovaPath->addAction(browseActionStroyova, QLineEdit::TrailingPosition);
@@ -134,14 +164,13 @@ ConvertorForm::ConvertorForm(QWidget* parent)
     connect(browseActionStroyova, &QAction::triggered, this, [this, stroyovaPath]() {
         QString dir = QFileDialog::getExistingDirectory(
             this,
-            "Оберіть папку",
+            "Оберіть папку зі наказами по стройовій",
             stroyovaPath->text(),
             QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
         if (!dir.isEmpty()) {
             stroyovaPath->setText(dir);
-            JSONSettings settingSaver;
-            settingSaver.saveFolder("STROYOVA_PATH", dir);
+            jsonSetting.saveFolder("STROYOVA_PATH", dir);
         }
     });
 
@@ -150,11 +179,9 @@ ConvertorForm::ConvertorForm(QWidget* parent)
     connect(stroyovaPath, &QLineEdit::editingFinished, this, [this, stroyovaPath]() {
         QString inputPath = stroyovaPath->text().trimmed(); // trimmed() прибирає випадкові пробіли по краях
 
-        JSONSettings settingSaver;
-
         // Дозволяємо користувачу повністю стерти шлях, якщо він хоче його очистити
         if (inputPath.isEmpty()) {
-            settingSaver.saveFolder("STROYOVA_PATH", "");
+            jsonSetting.saveFolder("STROYOVA_PATH", "");
             return;
         }
 
@@ -164,18 +191,17 @@ ConvertorForm::ConvertorForm(QWidget* parent)
             QMessageBox::warning(this, "Помилка шляху", "Вказаної папки не існує!");
 
             // Відміняємо зміни: повертаємо в поле останній збережений ВАЛІДНИЙ шлях
-            stroyovaPath->setText(settingSaver.loadFolder("STROYOVA_PATH"));
+            stroyovaPath->setText(jsonSetting.loadFolder("STROYOVA_PATH"));
         } else {
             // Якщо все добре — зберігаємо новий шлях
-            settingSaver.saveFolder("STROYOVA_PATH", inputPath);
+            jsonSetting.saveFolder("STROYOVA_PATH", inputPath);
         }
     });
 
     // ПРОСУНУТА ФІШКА (За бажанням):
     // Якщо користувач не натисне кнопку, а просто вставить шлях текстом (Ctrl+V) і натисне Enter:
-    connect(stroyovaPath, &QLineEdit::editingFinished, this, [stroyovaPath]() {
-        JSONSettings settingSaver;
-        settingSaver.saveFolder("STROYOVA_PATH", stroyovaPath->text());
+    connect(stroyovaPath, &QLineEdit::editingFinished, this, [&]() {
+        jsonSetting.saveFolder("STROYOVA_PATH", stroyovaPath->text());
     });
 
     QLineEdit* rsPath = new QLineEdit(this);
@@ -183,7 +209,7 @@ ConvertorForm::ConvertorForm(QWidget* parent)
     rsPath->setMinimumHeight(30);
 
     // ОДРАЗУ ЗАВАНТАЖУЄМО ЗБЕРЕЖЕНИЙ ШЛЯХ (якщо він є)
-    rsPath->setText(setting.loadFolder("RS_PATH"));
+    rsPath->setText(jsonSetting.loadFolder("RS_PATH"));
 
     rsPath->setStyleSheet(
         QString(
@@ -200,7 +226,7 @@ ConvertorForm::ConvertorForm(QWidget* parent)
             .arg(colorPath));
 
     // 1. Створюємо дію (Action) з іконкою
-    QAction* browseActionRS = new QAction(sysFolderIcon, "Огляд", this);
+    QAction* browseActionRS = new QAction(sysFolderIcon, "РС", this);
 
     // 2. Додаємо цю дію всередину QLineEdit у праву частину
     rsPath->addAction(browseActionRS, QLineEdit::TrailingPosition);
@@ -209,14 +235,13 @@ ConvertorForm::ConvertorForm(QWidget* parent)
     connect(browseActionRS, &QAction::triggered, this, [this, rsPath]() {
         QString dir = QFileDialog::getExistingDirectory(
             this,
-            "Оберіть папку",
+            "Оберіть папку зі наказами РС",
             rsPath->text(),
             QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
         if (!dir.isEmpty()) {
             rsPath->setText(dir);
-            JSONSettings settingSaver;
-            settingSaver.saveFolder("RS_PATH", dir);
+            jsonSetting.saveFolder("RS_PATH", dir);
         }
     });
 
@@ -225,11 +250,9 @@ ConvertorForm::ConvertorForm(QWidget* parent)
     connect(rsPath, &QLineEdit::editingFinished, this, [this, rsPath]() {
         QString inputPath = rsPath->text().trimmed(); // trimmed() прибирає випадкові пробіли по краях
 
-        JSONSettings settingSaver;
-
         // Дозволяємо користувачу повністю стерти шлях, якщо він хоче його очистити
         if (inputPath.isEmpty()) {
-            settingSaver.saveFolder("RS_PATH", "");
+            jsonSetting.saveFolder("RS_PATH", "");
             return;
         }
 
@@ -239,27 +262,25 @@ ConvertorForm::ConvertorForm(QWidget* parent)
             QMessageBox::warning(this, "Помилка шляху", "Вказаної папки не існує!");
 
             // Відміняємо зміни: повертаємо в поле останній збережений ВАЛІДНИЙ шлях
-            rsPath->setText(settingSaver.loadFolder("RS_PATH"));
+            rsPath->setText(jsonSetting.loadFolder("RS_PATH"));
         } else {
             // Якщо все добре — зберігаємо новий шлях
-            settingSaver.saveFolder("RS_PATH", inputPath);
+            jsonSetting.saveFolder("RS_PATH", inputPath);
         }
     });
 
     // ПРОСУНУТА ФІШКА (За бажанням):
     // Якщо користувач не натисне кнопку, а просто вставить шлях текстом (Ctrl+V) і натисне Enter:
-    connect(rsPath, &QLineEdit::editingFinished, this, [rsPath]() {
-        JSONSettings settingSaver;
-        settingSaver.saveFolder("RS_PATH", rsPath->text());
+    connect(rsPath, &QLineEdit::editingFinished, this, [&]() {
+        jsonSetting.saveFolder("RS_PATH", rsPath->text());
     });
 
     pathL->addWidget(stroyovaPath);
     pathL->addWidget(rsPath);
 
     statL->addStretch(7);
-    statL->addWidget(newF, 1);
-    statL->addWidget(modF, 1);
-    statL->addWidget(delF, 1);
+    statL->addWidget(frameSTR, 1);
+    statL->addWidget(frameRS, 1);
 
     convert = new QPushButton("Конвертувати", this);
     cancel = new QPushButton("Відмінити конвертування", this);
@@ -276,9 +297,8 @@ ConvertorForm::ConvertorForm(QWidget* parent)
 
     // Кнопка запуску конвертації
     connect(convert, &QPushButton::clicked, this, [this]() {
-        JSONSettings setting;
-        QString pathStroyova = setting.loadFolder("STROYOVA_PATH");
-        QString pathRC = setting.loadFolder("RS_PATH");
+        QString pathStroyova = jsonSetting.loadFolder("STROYOVA_PATH");
+        QString pathRC = jsonSetting.loadFolder("RS_PATH");
 
         if (pathStroyova.isEmpty() && pathRC.isEmpty()) {
             QMessageBox::warning(this, "Помилка", "Спочатку вкажіть шляхи до папок!");
@@ -286,8 +306,7 @@ ConvertorForm::ConvertorForm(QWidget* parent)
         }
 
         // Готуємо інтерфейс
-        convert->setEnabled(false);
-        cancel->setEnabled(true);
+        enabledTabs(false);
         // logText->clear();
         taskQueue.clear();
 
@@ -313,7 +332,7 @@ ConvertorForm::ConvertorForm(QWidget* parent)
             // Очищаємо чергу, щоб після зупинки першої папки друга НЕ почала конвертуватися
             taskQueue.clear();
 
-            logText->append("<font color='orange'><b>Надсилаємо команду зупинки...</b></font>");
+            logText->append("=== Відміна конвертації ===");
         }
     });
 
@@ -385,14 +404,26 @@ ConvertorForm::ConvertorForm(QWidget* parent)
             }
         }
     });
+
+    connect(this, &ConvertorForm::enabledTabs, this, [strPath = stroyovaPath, rsP = rsPath, actRS = browseActionRS, actStr = browseActionStroyova, convBtn = convert, canBtn = cancel, deleteRS = deleteAllRS_BD, deleteStroyova = deleteAllStroyouva_BD](bool enable) {
+        strPath->setEnabled(enable);
+        rsP->setEnabled(enable);
+
+        convBtn->setEnabled(enable);
+        deleteStroyova->setEnabled(enable);
+        deleteRS->setEnabled(enable);
+        actRS->setEnabled(enable);
+        actStr->setEnabled(enable);
+
+        canBtn->setEnabled(!enable);
+    });
 }
 
 void ConvertorForm::convertTask()
 {
     // Якщо черга порожня - ми все конвертували!
     if (taskQueue.isEmpty()) {
-        convert->setEnabled(true);
-        cancel->setEnabled(false);
+        enabledTabs(true);
         QMessageBox::information(this, "Готово", "Всі процеси конвертації завершено!");
         return;
     }
@@ -400,7 +431,7 @@ void ConvertorForm::convertTask()
     // Беремо перше завдання з черги
     ConversionTask task = taskQueue.takeFirst();
 
-    logText->append(QString("<br><font color='#53d2ff'><b>=== ПОЧАТОК КОНВЕРТАЦІЇ: %1 ===</b></font>").arg(task.name));
+    logText->append(QString("=== ПОЧАТОК КОНВЕРТАЦІЇ: %1 ===").arg(task.name));
 
     // СТВОРЮЄМО ФОНОВИЙ ПОТІК
     QThread* thread = new QThread(this);
@@ -412,9 +443,9 @@ void ConvertorForm::convertTask()
     // Ловимо логи
     connect(convertWorker, &ConvertorWorker::logMessage, this, [this](const QString& msg) {
         logText->append(msg);
-        QTextCursor cursor = logText->textCursor();
-        cursor.movePosition(QTextCursor::End);
-        logText->setTextCursor(cursor);
+        // QTextCursor cursor = logText->textCursor();
+        // cursor.movePosition(QTextCursor::End);
+        // logText->setTextCursor(cursor);
     });
 
     // Очищення пам'яті воркера
@@ -432,4 +463,28 @@ void ConvertorForm::convertTask()
 
     // Стартуємо!
     thread->start();
+}
+
+void ConvertorForm::stroyovaCBChanged(bool state)
+{
+    if (state) {
+        // stroyovaText->show();
+        jsonSetting.radioBtnSave("STROYOVA_CONV_BTN", true);
+    } else {
+        // stroyovaText->hide();
+        // stroyovaText->clear();
+        jsonSetting.radioBtnSave("STROYOVA_CONV_BTN", false);
+    }
+}
+
+void ConvertorForm::rcCBChanged(bool state)
+{
+    if (state) {
+        // rcText->show();
+        jsonSetting.radioBtnSave("RC_CONV_BTN", true);
+    } else {
+        // rcText->hide();
+        // rcText->clear();
+        jsonSetting.radioBtnSave("RC_CONV_BTN", false);
+    }
 }

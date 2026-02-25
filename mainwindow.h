@@ -20,9 +20,13 @@ public:
 
     void createMenus();
 
+public slots:
+    void setEnabledTabs(bool enable);
+
 private:
     Ui::MainWindow* ui;
 
-    CentralWidget* central;
-    ConvertorForm* convertor;
+    CentralWidget* central = nullptr;
+    ConvertorForm* convertor = nullptr;
+    QTabWidget* mainTabs = nullptr;
 };

@@ -1,14 +1,14 @@
 #include "convertorworker.h"
 
-#include "DadaBase/databasemanager.h"
-#include "filescanner.h"
-#include "hashutils.h"
-#include "libreofficeconverter.h"
-
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QDebug>
 #include <QDir>
+
+#include "DadaBase/databasemanager.h"
+#include "filescanner.h"
+#include "hashutils.h"
+#include "libreofficeconverter.h"
 
 ConvertorWorker::ConvertorWorker(const QString& convertDBName, const QString& sourceRoot, const QString& dbPath, QObject* parent)
     : QObject(parent)
@@ -125,7 +125,7 @@ void ConvertorWorker::process()
 
     // Очищення виконується незалежно від того, чи був процес перерваний
     QStringList deletedFiles = dbManager.getDeletedFiles(currentRelativePaths);
-    for (const QString& delPath : deletedFiles) {
+    for (const auto& delPath : deletedFiles) {
         emit logMessage("[ВИДАЛЕНО З ДИСКУ] Очищення запису в БД: " + delPath);
         dbManager.removeDocument(delPath);
     }

@@ -62,14 +62,14 @@ CentralWidget::CentralWidget(QWidget* parent)
     settingHighlightLineEdit(secondName);
     settingHighlightLineEdit(fatherName);
 
-    stroyova = new QCheckBox("СТРОЙОВА", this);
-    bool strVal = setting.radioBtnLoad("STROYOVA_BTN");
-    stroyova->setChecked(strVal);
+    stroyovaCB = new QCheckBox("СТРОЙОВА", this);
+    bool strVal = setting.radioBtnLoad("STROYOVA_CENTR_BTN");
+    stroyovaCB->setChecked(strVal);
     stroyovaChanged(strVal);
 
-    rc = new QCheckBox("РС", this);
-    bool rcVal = setting.radioBtnLoad("RC_BTN");
-    rc->setChecked(rcVal);
+    rcCB = new QCheckBox("РС", this);
+    bool rcVal = setting.radioBtnLoad("RC_CENTR_BTN");
+    rcCB->setChecked(rcVal);
     rcChanged(rcVal);
 
     auto* stroyovaL = new QVBoxLayout();
@@ -105,8 +105,8 @@ CentralWidget::CentralWidget(QWidget* parent)
     namesL->addWidget(firstName);
     namesL->addWidget(secondName);
     namesL->addWidget(fatherName);
-    namesL->addWidget(stroyova);
-    namesL->addWidget(rc);
+    namesL->addWidget(stroyovaCB);
+    namesL->addWidget(rcCB);
 
     firstName->setPlaceholderText("Прізвище");
     secondName->setPlaceholderText("Ім'я");
@@ -121,14 +121,13 @@ CentralWidget::CentralWidget(QWidget* parent)
     mainL->addLayout(buttL);
     mainL->addWidget(splitter);
 
-    connect(butt, &QPushButton::clicked,
-        this, &CentralWidget::onButtonClicked);
+    connect(butt, &QPushButton::clicked, this, &CentralWidget::onButtonClicked);
 
-    connect(stroyova, &QCheckBox::toggled,
-        this, &CentralWidget::stroyovaChanged);
+    connect(this, &CentralWidget::enabledTabs, butt, &QPushButton::setEnabled);
 
-    connect(rc, &QCheckBox::toggled,
-        this, &CentralWidget::rcChanged);
+    connect(stroyovaCB, &QCheckBox::toggled, this, &CentralWidget::stroyovaChanged);
+
+    connect(rcCB, &QCheckBox::toggled, this, &CentralWidget::rcChanged);
 }
 
 void CentralWidget::startHeavyWork(const QString& dbPath, SearchedName& names, const QString prossecName, QThread*& thread)
@@ -213,10 +212,10 @@ void CentralWidget::onButtonClicked()
     names.first = secondName->text().trimmed();
     names.father = fatherName->text().trimmed();
 
-    if (stroyova->isChecked() || rc->isChecked())
-        butt->setEnabled(false);
+    if (stroyovaCB->isChecked() || rcCB->isChecked())
+        enabledTabs(false);
 
-    if (stroyova->isChecked()) {
+    if (stroyovaCB->isChecked()) {
         // Шлях до БД Стройової біля програми
         QString dbPath = QCoreApplication::applicationDirPath() + "/NameRadarDB_STROYOVA.db";
 
@@ -227,7 +226,7 @@ void CentralWidget::onButtonClicked()
         radButtState1 = true;
     }
 
-    if (rc->isChecked()) {
+    if (rcCB->isChecked()) {
         // Шлях до БД РС біля програми
         QString dbPath = QCoreApplication::applicationDirPath() + "/NameRadarDB_RS.db";
 
@@ -243,11 +242,11 @@ void CentralWidget::stroyovaChanged(bool state)
 {
     if (state) {
         stroyovaText->show();
-        setting.radioBtnSave("STROYOVA_BTN", true);
+        setting.radioBtnSave("STROYOVA_CENTR_BTN", true);
     } else {
         stroyovaText->hide();
         stroyovaText->clear();
-        setting.radioBtnSave("STROYOVA_BTN", false);
+        setting.radioBtnSave("STROYOVA_CENTR_BTN", false);
     }
 }
 
@@ -255,11 +254,11 @@ void CentralWidget::rcChanged(bool state)
 {
     if (state) {
         rcText->show();
-        setting.radioBtnSave("RC_BTN", true);
+        setting.radioBtnSave("RC_CENTR_BTN", true);
     } else {
         rcText->hide();
         rcText->clear();
-        setting.radioBtnSave("RC_BTN", false);
+        setting.radioBtnSave("RC_CENTR_BTN", false);
     }
 }
 
@@ -300,6 +299,6 @@ void CentralWidget::onHeavyWorkFinished(std::tuple<QString, OutputData, const QS
         radButtState2 = false;
         op1 = false;
         op2 = false;
-        butt->setEnabled(true);
+        enabledTabs(true);
     }
 }
