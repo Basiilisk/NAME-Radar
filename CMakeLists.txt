@@ -1,37 +1,95 @@
 cmake_minimum_required(VERSION 3.19)
 project(NAME_Radar LANGUAGES CXX)
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets Sql)
-find_package(Qt6 REQUIRED COMPONENTS Core)
+# ==============================================================================
+# МАКСИМАЛЬНА ОПТИМІЗАЦІЯ РОЗМІРУ (LTO)
+# ==============================================================================
+# Вмикаємо міжпроцедурну оптимізацію (Link Time Optimization).
+# Вона змушує компілятор викинути весь мертвий/невикористаний код з Qt.
+# Збірка триватиме трохи довше, але розмір .exe буде мінімальним!
+include(CheckIPOSupported)
+check_ipo_supported(RESULT ipo_supported OUTPUT error)
+if(ipo_supported)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+else()
+    message(WARNING "IPO/LTO не підтримується: ${error}")
+endif()
 
+# Кажемо MSVC оптимізувати розмір файлу (/O1 або /O2, для релізу Qt і так ставить O2)
+if(MSVC)
+    add_compile_options("$<$<CONFIG:Release>:/O2>")
+endif()
+
+# ==============================================================================
+# БЛОК 1: СТАТИЧНА ЗБІРКА C++ RUNTIME (Тільки для компілятора MSVC)
+# Вшиваємо базові бібліотеки C++ в екзешник, щоб не вимагало VCRUNTIME140.dll
+# ==============================================================================
+if(MSVC)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
+# ==============================================================================
+# БЛОК 2: ПІДКЛЮЧЕННЯ QT ТА ВНУТРІШНІХ ПАПОК
+# ==============================================================================
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets Sql)
 qt_standard_project_setup()
 
-qt_add_executable(NAME_Radar
-    WIN32
-    app.rc
-    main.cpp
-    mainwindow.cpp
-    mainwindow.h
-    mainwindow.ui
-    centralwidget.h centralwidget.cpp
-    StructUSE.h
-    jsonsettings.h jsonsettings.cpp
-    searchnames.h searchnames.cpp
-    sortfilebydate.h sortfilebydate.cpp
-    heavyworkthread.h heavyworkthread.cpp
-    highlightlineedit.h highlightlineedit.cpp
-    convertorform.h convertorform.cpp
+# Кажемо компілятору: "Шукай заголовні файли (.h) у папці src".
+# Це дозволяє писати #include "mainwindow.h" замість #include "src/mainwindow.h"
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-    Convertor/convertormanager.h
-    Convertor/convertormanager.cpp
-    Convertor/hashutils.h
-    Convertor/hashutils.cpp
-    Convertor/filescanner.h Convertor/filescanner.cpp
+set(PROJECT_HEADERS
+    src/mainwindow.h
+    src/centralwidget.h
+    src/StructUSE.h
+    src/jsonsettings.h
+    src/searchnames.h
+    src/sortfilebydate.h
+    src/heavyworkthread.h
+    src/highlightlineedit.h
+    src/convertorform.h
+    src/Convertor/convertormanager.h
+    src/Convertor/hashutils.h
+    src/Convertor/filescanner.h
+    src/Convertor/libreofficeconverter.h
+    src/Convertor/DadaBase/databasemanager.h
+    src/Convertor/convertorworker.h
+)
 
-    Convertor/libreofficeconverter.h Convertor/libreofficeconverter.cpp
-    Convertor/DadaBase/databasemanager.h Convertor/DadaBase/databasemanager.cpp
-    Convertor/convertorworker.h Convertor/convertorworker.cpp
+set(PROJECT_SOURCES
+    src/main.cpp
+    src/mainwindow.cpp
+    src/centralwidget.cpp
+    src/jsonsettings.cpp
+    src/searchnames.cpp
+    src/sortfilebydate.cpp
+    src/heavyworkthread.cpp
+    src/highlightlineedit.cpp
+    src/convertorform.cpp
+    src/Convertor/convertormanager.cpp
+    src/Convertor/hashutils.cpp
+    src/Convertor/filescanner.cpp
+    src/Convertor/libreofficeconverter.cpp
+    src/Convertor/DadaBase/databasemanager.cpp
+    src/Convertor/convertorworker.cpp
+)
 
+set(PROJECT_FORMS
+    src/mainwindow.ui
+)
+
+set(PROJECT_RESOURCES
+    src/app.rc
+)
+
+# ==============================================================================
+# БЛОК 4: СТВОРЕННЯ EXECUTABLE ТА ЛІНКОВКА QT
+# ==============================================================================
+qt_add_executable(NAME_Radar WIN32
+    ${PROJECT_HEADERS}
+    ${PROJECT_SOURCES}
+    ${PROJECT_FORMS}
+    ${PROJECT_RESOURCES}
 )
 
 target_link_libraries(NAME_Radar
@@ -41,17 +99,32 @@ target_link_libraries(NAME_Radar
         Qt6::Sql
 )
 
-include(GNUInstallDirs)
+# ==============================================================================
+# БЛОК 5: РОБОТА З THIRDPARTY (АВТОМАТИЧНЕ КОПІЮВАННЯ)
+# ==============================================================================
+# Вказуємо шлях до всієї папки thirdparty
+set(THIRDPARTY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty")
 
-install(TARGETS NAME_Radar
-    BUNDLE  DESTINATION .
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+# Тепер ми копіюємо не вміст LibreOffice, а повністю всю папку thirdparty.
+# Після збірки поруч з NAME_Radar.exe з'явиться папка "thirdparty".
+add_custom_command(TARGET NAME_Radar POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${THIRDPARTY_DIR}"
+    "$<TARGET_FILE_DIR:NAME_Radar>/thirdparty"
+    COMMENT "Копіювання папки thirdparty поруч з exe..."
 )
 
-qt_generate_deploy_app_script(
-    TARGET NAME_Radar
-    OUTPUT_SCRIPT deploy_script
-    NO_UNSUPPORTED_PLATFORM_ERROR
-)
-install(SCRIPT ${deploy_script})
+# ==============================================================================
+# БЛОК 6: НАЛАШТУВАННЯ ДЕПЛОЮ (СТВОРЕННЯ ПАПКИ Deploy_Release В КОРЕНІ ПРОЄКТУ)
+# ==============================================================================
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    # Змінили CMAKE_BINARY_DIR на CMAKE_SOURCE_DIR
+    set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/Deploy_Release" CACHE PATH "Папка для фінального релізу" FORCE)
+endif()
+
+# Інсталюємо екзешник
+install(TARGETS NAME_Radar RUNTIME DESTINATION .)
+
+# Кажемо CMake: "Візьми папку thirdparty і поклади її в корінь deploy_release"
+# (Увага: відсутність слеша після THIRDPARTY_DIR важлива, щоб скопіювалась сама папка, а не лише її вміст)
+install(DIRECTORY "${THIRDPARTY_DIR}" DESTINATION .)

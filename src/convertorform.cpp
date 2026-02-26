@@ -123,8 +123,8 @@ ConvertorForm::ConvertorForm(QWidget* parent)
     checkBoxsL->addWidget(stroyovaCheckBox);
     checkBoxsL->addWidget(rcCheckBox);
 
-    auto* frameRS = new QFrame(this);
-    auto* frameSTR = new QFrame(this);
+    // auto* frameRS = new QFrame(this);
+    // auto* frameSTR = new QFrame(this);
 
     // settingFrame(frameSTR);
     // settingFrame(frameRS);
@@ -200,7 +200,7 @@ ConvertorForm::ConvertorForm(QWidget* parent)
 
     // ПРОСУНУТА ФІШКА (За бажанням):
     // Якщо користувач не натисне кнопку, а просто вставить шлях текстом (Ctrl+V) і натисне Enter:
-    connect(stroyovaPath, &QLineEdit::editingFinished, this, [&]() {
+    connect(stroyovaPath, &QLineEdit::editingFinished, this, [=]() {
         jsonSetting.saveFolder("STROYOVA_PATH", stroyovaPath->text());
     });
 
@@ -271,16 +271,16 @@ ConvertorForm::ConvertorForm(QWidget* parent)
 
     // ПРОСУНУТА ФІШКА (За бажанням):
     // Якщо користувач не натисне кнопку, а просто вставить шлях текстом (Ctrl+V) і натисне Enter:
-    connect(rsPath, &QLineEdit::editingFinished, this, [&]() {
+    connect(rsPath, &QLineEdit::editingFinished, this, [=]() {
         jsonSetting.saveFolder("RS_PATH", rsPath->text());
     });
 
     pathL->addWidget(stroyovaPath);
     pathL->addWidget(rsPath);
 
-    statL->addStretch(7);
-    statL->addWidget(frameSTR, 1);
-    statL->addWidget(frameRS, 1);
+    // statL->addStretch(7);
+    //  statL->addWidget(frameSTR, 1);
+    //  statL->addWidget(frameRS, 1);
 
     convert = new QPushButton("Конвертувати", this);
     cancel = new QPushButton("Відмінити конвертування", this);
@@ -306,7 +306,7 @@ ConvertorForm::ConvertorForm(QWidget* parent)
         }
 
         // Готуємо інтерфейс
-        enabledTabs(false);
+        emit enabledTabs(false);
         // logText->clear();
         taskQueue.clear();
 
@@ -423,7 +423,7 @@ void ConvertorForm::convertTask()
 {
     // Якщо черга порожня - ми все конвертували!
     if (taskQueue.isEmpty()) {
-        enabledTabs(true);
+        emit enabledTabs(true);
         QMessageBox::information(this, "Готово", "Всі процеси конвертації завершено!");
         return;
     }

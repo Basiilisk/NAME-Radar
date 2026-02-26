@@ -10,7 +10,7 @@
 
 QString LibreOfficeConverter::extractText(const QString& inputFilePath, QString& errorMessage)
 {
-    const QString sofficePath = "../../LOP/libreOffice/App/libreoffice/program/soffice.exe";
+    QString sofficePath = QCoreApplication::applicationDirPath() + "/thirdparty/LibreOfficePortable/App/libreoffice/program/soffice.exe";
 
     if (!QFile::exists(sofficePath)) {
         errorMessage = "Не знайдено рушій LibreOffice за шляхом: " + sofficePath;
